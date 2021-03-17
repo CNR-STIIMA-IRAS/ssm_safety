@@ -1,0 +1,6 @@
+<launch>
+
+  <rosparam file="$(find package_name)/config/config.yaml" command="load"/>
+  <node pkg="package_name" name="node_name" type="node_type" output="screen" />
+
+</launch>

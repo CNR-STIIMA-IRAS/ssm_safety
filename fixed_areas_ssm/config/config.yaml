@@ -1,0 +1,28 @@
+ssm:
+  override_increase_speed: 10 # [%/s]
+  override_decrease_speed: 100 # [%/s]
+  areas:
+  - name: "area0"
+    override: 50
+    corners:
+    - [0,0]
+    - [0,  1.9]
+    - [1.8,1.9]
+    - [1.8,0]
+  - name: "area1"
+    override: 30
+    corners:
+    - [0,0]
+    - [0,1.5]
+    - [1.8,1.5]
+    - [1.8,0]
+
+  - name: "stop_area"
+    override: 0
+    corners:
+    - [0,0]
+    - [0,1.0]
+    - [1.8,1.0]
+    - [1.8,0]
+
+
