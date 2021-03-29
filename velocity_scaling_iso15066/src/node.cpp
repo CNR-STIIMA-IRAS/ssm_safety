@@ -93,11 +93,11 @@ int main(int argc, char **argv)
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("safe_ovr_1",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
-  if (!obstacle_notif.waitForANewData())
-  {
-    ROS_ERROR("timeout: no new messages from topic /poses");
-    return 0;
-  }
+//  if (!obstacle_notif.waitForANewData())
+//  {
+//    ROS_ERROR("timeout: no new messages from topic /poses");
+//    return 0;
+//  }
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
   if (!js_notif.waitForANewData())
   {
