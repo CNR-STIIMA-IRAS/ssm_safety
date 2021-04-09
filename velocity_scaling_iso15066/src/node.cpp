@@ -93,17 +93,10 @@ int main(int argc, char **argv)
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("safe_ovr_1",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
-//  if (!obstacle_notif.waitForANewData())
-//  {
-//    ROS_ERROR("timeout: no new messages from topic /poses");
-//    return 0;
-//  }
+
+
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
-  if (!js_notif.waitForANewData())
-  {
-    ROS_ERROR("timeout: no new messages from topic /unscaled_joint_target");
-    return 0;
-  }
+  bool unscaled_joint_target_received=false;
 
   Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
 
@@ -126,6 +119,7 @@ int main(int argc, char **argv)
         q(iax)=js_notif.getData().position.at(iax);
         dq(iax)=js_notif.getData().velocity.at(iax);
       }
+      unscaled_joint_target_received=true;
     }
     if (obstacle_notif.isANewDataAvailable())
     {
@@ -142,7 +136,12 @@ int main(int argc, char **argv)
 
     }
 
-    double ovr=ssm.computeScaling(q,dq);
+    double ovr=0;
+    if (unscaled_joint_target_received)
+    {
+      ovr=ssm.computeScaling(q,dq);
+    }
+
     if (ovr>(last_ovr+pos_ovr_change))
       ovr=last_ovr+pos_ovr_change;
     else if (ovr<(last_ovr-neg_ovr_change))
