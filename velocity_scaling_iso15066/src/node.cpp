@@ -132,8 +132,7 @@ int main(int argc, char **argv)
         pc_in_b(2,ip)=poses.poses.at(ip).position.z;
       }
       ssm.setPointCloud(pc_in_b);
-      ROS_INFO_THROTTLE(1,"points=%zu",pc_in_b.cols());
-
+      ROS_DEBUG_THROTTLE(1,"points=%zu",pc_in_b.cols());
     }
 
     double ovr=0;

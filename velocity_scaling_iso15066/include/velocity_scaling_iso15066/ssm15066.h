@@ -42,6 +42,7 @@ protected:
   Eigen::VectorXd inv_velocity_limits_;
 
 
+  double self_distance_=0.2;
   double min_distance_=0.3  ; // min distance
   double max_cart_acc_=0.1;  // m/s^2
   double t_r_=0.15;  // reaction time;
@@ -90,6 +91,7 @@ inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1)
 
   ros::NodeHandle nh("~");
   min_distance_=nh.param("minimum_distance",0.3);
+  self_distance_=nh.param("self_distance",0.0);
   max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
   t_r_=nh.param("reaction_time",0.15);
 
@@ -115,6 +117,8 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
     {
       d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
       distance_=d_lc_in_b_.norm();
+      if (distance_<self_distance_)
+        continue;
       tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
       if (tangential_speed_<=0)  // robot is going away
       {
