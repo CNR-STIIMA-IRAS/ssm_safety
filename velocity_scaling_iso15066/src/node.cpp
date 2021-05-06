@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Int64.h>
+#include <std_msgs/Float32.h>
 
 int main(int argc, char **argv)
 {
@@ -92,6 +93,7 @@ int main(int argc, char **argv)
 
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("safe_ovr_1",1);
+  ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("safe_ovr_1_float",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
 
 
@@ -148,6 +150,10 @@ int main(int argc, char **argv)
     last_ovr=ovr;
     ovr_msg.data=100*ovr;
     ovr_pb.publish(ovr_msg);
+
+    std_msgs::Float32 msg_float;
+    msg_float.data=ovr_msg.data;
+    ovr_float_pb.publish(msg_float);
     ROS_DEBUG_THROTTLE(1,"ovr=%d",ovr_msg.data);
     lp.sleep();
   }
