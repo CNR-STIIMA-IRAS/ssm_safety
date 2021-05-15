@@ -15,7 +15,7 @@ The module publishes:
 
 - a message of the type std_msgs::Int64 containing the safety override 0-100 (the topics are two, with the same content, to have a redundant communication channel) 
 
-## [fixed_areas_ssm[(fixed_areas_ssm/README.md)
+## [fixed_areas_ssm](fixed_areas_ssm/README.md)
 The module needs the position of the human in the cell. The robot slows down if the human enters in predefined zones.
 The module subscribes:  
 
