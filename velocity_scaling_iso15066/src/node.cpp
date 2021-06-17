@@ -99,6 +99,7 @@ int main(int argc, char **argv)
 
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
   bool unscaled_joint_target_received=false;
+  bool poses_received=false;
 
   Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
 
@@ -126,6 +127,11 @@ int main(int argc, char **argv)
     if (obstacle_notif.isANewDataAvailable())
     {
       geometry_msgs::PoseArray poses=obstacle_notif.getData();
+      if (poses.header.frame_id.compare(base_frame))
+      {
+        ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s",poses.header.frame_id.c_str(),base_frame.c_str());
+        continue;
+      }
       pc_in_b.resize(3,poses.poses.size());
       for (size_t ip=0;ip<poses.poses.size();ip++)
       {
@@ -134,8 +140,14 @@ int main(int argc, char **argv)
         pc_in_b(2,ip)=poses.poses.at(ip).position.z;
       }
       ssm.setPointCloud(pc_in_b);
-      ROS_DEBUG_THROTTLE(1,"points=%zu",pc_in_b.cols());
+      poses_received=true;
     }
+
+    if (not unscaled_joint_target_received)
+      ROS_INFO_THROTTLE(2,"unscaled joint target topic has been received yet");
+    if (not poses_received)
+      ROS_INFO_THROTTLE(2,"poses topic has been received yet");
+
 
     double ovr=0;
     if (unscaled_joint_target_received)
