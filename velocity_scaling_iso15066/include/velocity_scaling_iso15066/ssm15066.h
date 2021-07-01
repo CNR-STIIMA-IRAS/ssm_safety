@@ -83,6 +83,9 @@ public:
 };
 
 
+typedef shared_ptr_namespace::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
+typedef shared_ptr_namespace::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
+
 inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1)
 {
   chain_=chain1;
@@ -106,6 +109,8 @@ inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1)
 inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
                                         const Eigen::VectorXd& dq)
 {
+  if (pc_in_b_.cols()==0)
+    return 1.0;
 
   Tbl_=chain_->getTransformations(q);
   vl_in_b_=chain_->getTwist(q,dq);
@@ -150,7 +155,8 @@ inline void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen
 
 inline double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
 {
-
+  if (pc_in_b_.cols()==0)
+    return 1.0;
   scaling_.clear();
   Tbl_=chain_->getTransformations(q);
   vl_in_b_=chain_->getTwist(q,dq);
