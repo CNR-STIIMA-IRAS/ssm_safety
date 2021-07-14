@@ -62,7 +62,7 @@ protected:
   std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  DeterministicSSM(const rosdyn::ChainPtr& chain);
+  DeterministicSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh = ros::NodeHandle("~"));
   void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& pc_in_b){pc_in_b_=pc_in_b;}
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq);
@@ -74,7 +74,7 @@ class ProbabilisticSSM: public DeterministicSSM
   std::map<double,double> scaling_;
   double occupancy_min_=0.0;
 public:
-  ProbabilisticSSM(const rosdyn::ChainPtr& chain): DeterministicSSM(chain){}
+  ProbabilisticSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh=ros::NodeHandle("~")): DeterministicSSM(chain,nh){}
   void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& pc_in_b1,
                      const Eigen::VectorXd& occupancy);
   double computeScaling(const Eigen::VectorXd& q,
@@ -86,13 +86,12 @@ public:
 typedef shared_ptr_namespace::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
 typedef shared_ptr_namespace::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
 
-inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1)
+inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1, const ros::NodeHandle nh)
 {
   chain_=chain1;
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
 
-  ros::NodeHandle nh("~");
   min_distance_=nh.param("minimum_distance",0.3);
   self_distance_=nh.param("self_distance",0.0);
   max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);

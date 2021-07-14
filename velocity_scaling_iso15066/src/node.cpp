@@ -166,7 +166,7 @@ int main(int argc, char **argv)
     std_msgs::Float32 msg_float;
     msg_float.data=ovr_msg.data;
     ovr_float_pb.publish(msg_float);
-    ROS_DEBUG_THROTTLE(1,"ovr=%d",ovr_msg.data);
+    ROS_DEBUG_STREAM_THROTTLE(1,"ovr = " << ovr_msg.data);
     lp.sleep();
   }
 
