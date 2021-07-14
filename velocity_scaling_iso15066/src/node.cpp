@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "ssm_iso15066");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
   double st=0.02;
   double pos_ovr_change=0.25*st;
