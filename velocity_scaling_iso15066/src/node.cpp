@@ -92,8 +92,8 @@ int main(int argc, char **argv)
   }
 
 
-  ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("safe_ovr_1",1);
-  ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("safe_ovr_1_float",1);
+  ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("/safe_ovr_1",1);
+  ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
 
 
