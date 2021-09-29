@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Int64.h>
 #include <std_msgs/Float32.h>
+#include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 int main(int argc, char **argv)
 {
@@ -67,7 +70,27 @@ int main(int argc, char **argv)
     ROS_ERROR("tool_link not defined");
     return 0;
   }
+  // Loading publishing obstacles information
+  bool publish_obstacles;
+  if (!nh.getParam("publish_obstacles",publish_obstacles))
+  {
+    ROS_ERROR("%s/publish_obstacles not defined, set false",nh.getNamespace().c_str());
+    publish_obstacles = false;
+  }
 
+  double sphere_radius;
+  if(publish_obstacles)
+  {
+    if (!nh.getParam("sphere_radius",sphere_radius))
+    {
+      ROS_ERROR("%s/sphere_radius not defined, set 0.3",nh.getNamespace().c_str());
+      sphere_radius = 0.3;
+    }
+  }
+
+  tf::TransformListener listener;
+
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
   rosdyn::ChainPtr chain = rosdyn::createChain(model,base_frame,tool_frame,grav);
   if (!chain)
@@ -96,7 +119,6 @@ int main(int argc, char **argv)
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
 
-
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
   bool unscaled_joint_target_received=false;
   bool poses_received=false;
@@ -112,9 +134,15 @@ int main(int argc, char **argv)
   std_msgs::Int64 ovr_msg;
   ovr_msg.data=0;
   double last_ovr=0;
+
+  std::string pose_frame_id;
+
+  ros::Time last_pose_topic=ros::Time(0);
   while (ros::ok())
   {
     ros::spinOnce();
+    double ovr=0;
+    bool error=false;
     if (js_notif.isANewDataAvailable())
     {
       for (unsigned int iax=0;iax<nAx;iax++)
@@ -124,24 +152,96 @@ int main(int argc, char **argv)
       }
       unscaled_joint_target_received=true;
     }
+
     if (obstacle_notif.isANewDataAvailable())
     {
       geometry_msgs::PoseArray poses=obstacle_notif.getData();
+      Eigen::Affine3d T_base_camera;
+      T_base_camera.setIdentity();
+      tf::StampedTransform tf_base_camera;
+
       if (poses.header.frame_id.compare(base_frame))
       {
-        ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s",poses.header.frame_id.c_str(),base_frame.c_str());
-        continue;
+
+        if (not listener.waitForTransform(base_frame.c_str(),poses.header.frame_id,poses.header.stamp,ros::Duration(0.01)))
+        {
+          ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s. No TF available",poses.header.frame_id.c_str(),base_frame.c_str());
+          error=true;
+        }
+        else
+        {
+          listener.lookupTransform(base_frame,poses.header.frame_id,poses.header.stamp,tf_base_camera);
+          tf::poseTFToEigen(tf_base_camera,T_base_camera);
+        }
       }
+      else
+      {
+        tf::poseEigenToTF(T_base_camera,tf_base_camera);
+      }
+
       pc_in_b.resize(3,poses.poses.size());
       for (size_t ip=0;ip<poses.poses.size();ip++)
       {
-        pc_in_b(0,ip)=poses.poses.at(ip).position.x;
-        pc_in_b(1,ip)=poses.poses.at(ip).position.y;
-        pc_in_b(2,ip)=poses.poses.at(ip).position.z;
+        Eigen::Vector3d point_in_c;
+        point_in_c(0)=poses.poses.at(ip).position.x;
+        point_in_c(1)=poses.poses.at(ip).position.y;
+        point_in_c(2)=poses.poses.at(ip).position.z;
+        pc_in_b.col(ip)=T_base_camera*point_in_c;
       }
       ssm.setPointCloud(pc_in_b);
       poses_received=true;
+      last_pose_topic=ros::Time::now();
+
+      if(publish_obstacles)
+      {
+        shape_msgs::SolidPrimitive primitive;
+        primitive.type = primitive.SPHERE;
+        primitive.dimensions.resize(1);
+        primitive.dimensions[0] = sphere_radius;
+
+        moveit_msgs::CollisionObject collision_object;
+
+        collision_object.header.frame_id=base_frame;
+        collision_object.header.stamp=ros::Time::now();
+        collision_object.pose.orientation.w=1;
+//        collision_object.id="skeleton_obs";
+        if (poses.poses.size()>0)
+        {
+          pose_frame_id = "skeleton_obj_";
+          pose_frame_id.append(poses.header.frame_id);
+
+          collision_object.id = pose_frame_id;
+          collision_object.operation = collision_object.ADD;
+
+          for (size_t ip=0;ip<poses.poses.size();ip++)
+          {
+            geometry_msgs::Pose p;
+            p.position.x=pc_in_b.col(ip)(0);
+            p.position.y=pc_in_b.col(ip)(1);
+            p.position.z=pc_in_b.col(ip)(2);
+            p.orientation.w=1.0;
+            collision_object.primitive_poses.push_back(p);
+            collision_object.primitives.push_back(primitive);
+          }
+        }
+        else
+        {
+          collision_object.operation = collision_object.REMOVE;
+        }
+
+        std::vector<moveit_msgs::CollisionObject> collision_objects; //addCollisionObect requires a vector
+        collision_objects.push_back(collision_object);
+        planning_scene_interface.addCollisionObjects(collision_objects);
+      }
     }
+
+    // poses is old
+    if ((ros::Time::now()-last_pose_topic).toSec()>0.5)
+    {
+      pc_in_b.resize(3,0);
+      ssm.setPointCloud(pc_in_b);
+    }
+
 
     if (not unscaled_joint_target_received)
       ROS_INFO_THROTTLE(2,"unscaled joint target topic has been received yet");
@@ -149,11 +249,12 @@ int main(int argc, char **argv)
       ROS_INFO_THROTTLE(2,"poses topic has been received yet");
 
 
-    double ovr=0;
     if (unscaled_joint_target_received)
     {
       ovr=ssm.computeScaling(q,dq);
     }
+    if (error)
+      ovr=0.0;
 
     if (ovr>(last_ovr+pos_ovr_change))
       ovr=last_ovr+pos_ovr_change;

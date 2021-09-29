@@ -9,11 +9,14 @@ find_package(catkin REQUIRED COMPONENTS
   subscription_notifier
   geometry_msgs
   sensor_msgs
+  tf
+  tf_conversions
+  moveit_ros_planning_interface
 )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES #velocity_scaling_iso15066
-  CATKIN_DEPENDS roscpp rosdyn_core subscription_notifier geometry_msgs sensor_msgs
+  CATKIN_DEPENDS roscpp rosdyn_core subscription_notifier geometry_msgs sensor_msgs tf tf_conversions moveit_ros_planning_interface
 )
 include_directories(
   include
