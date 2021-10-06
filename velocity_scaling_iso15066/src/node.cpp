@@ -192,6 +192,7 @@ int main(int argc, char **argv)
       poses_received=true;
       last_pose_topic=ros::Time::now();
 
+      #if ROS_VERSION_MINIMUM(1, 15, 1)
       if(publish_obstacles)
       {
         shape_msgs::SolidPrimitive primitive;
@@ -233,6 +234,7 @@ int main(int argc, char **argv)
         collision_objects.push_back(collision_object);
         planning_scene_interface.addCollisionObjects(collision_objects);
       }
+      #endif
     }
 
     // poses is old
