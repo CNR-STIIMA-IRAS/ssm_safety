@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 
         collision_object.header.frame_id=base_frame;
         collision_object.header.stamp=ros::Time::now();
-        collision_object.pose.orientation.w=1;
+        //collision_object.pose.orientation.w=1;
 //        collision_object.id="skeleton_obs";
         if (poses.poses.size()>0)
         {
