@@ -61,6 +61,7 @@
   <depend>tf</depend>
   <depend>tf_conversions</depend>
   <depend>moveit_ros_planning_interface</depend>
+  <depend>name_sorting</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
