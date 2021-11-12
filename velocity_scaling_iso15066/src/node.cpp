@@ -88,6 +88,12 @@ int main(int argc, char **argv)
     }
   }
 
+  std::string topic_poses="/poses";
+  if (!nh.getParam("topic_poses",topic_poses))
+  {
+    ROS_WARN("topic_poses not defined. Deafult=/poses");
+  }
+
   tf::TransformListener listener;
 
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -117,7 +123,7 @@ int main(int argc, char **argv)
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("/safe_ovr_1",1);
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
-  ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
+  ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,topic_poses,1);
 
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
   bool unscaled_joint_target_received=false;
@@ -165,7 +171,7 @@ int main(int argc, char **argv)
 
         if (not listener.waitForTransform(base_frame.c_str(),poses.header.frame_id,poses.header.stamp,ros::Duration(0.01)))
         {
-          ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s. No TF available",poses.header.frame_id.c_str(),base_frame.c_str());
+          ROS_ERROR_THROTTLE(0.01,"Poses topic has wrong frame, %s instead of %s. No TF available",poses.header.frame_id.c_str(),base_frame.c_str());
           error=true;
         }
         else
