@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="namespace" default=""/>
+  <node pkg="velocity_scaling_iso15066" type="unscaled_joint_target_pub" name="unscaled_joint_target_pub" output="log">
+    <remap from="/follow_joint_trajectory/goal" to="$(arg namespace)/follow_joint_trajectory/goal"/>
+  </node>
+</launch>
