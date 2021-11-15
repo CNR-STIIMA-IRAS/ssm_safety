@@ -117,6 +117,7 @@ int main(int argc, char **argv)
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("/safe_ovr_1",1);
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
+  ros::Publisher dist_pb=nh.advertise<std_msgs::Float32>("/min_distance_from_poses",1);
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
 
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
@@ -270,6 +271,10 @@ int main(int argc, char **argv)
     msg_float.data=ovr_msg.data;
     ovr_float_pb.publish(msg_float);
     ROS_DEBUG_STREAM_THROTTLE(1,"ovr = " << ovr_msg.data);
+
+    msg_float.data=ssm.getDistanceFromClosestPoint();
+    dist_pb.publish(msg_float);
+
     lp.sleep();
   }
 
