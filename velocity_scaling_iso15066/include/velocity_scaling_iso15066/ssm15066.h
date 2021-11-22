@@ -115,6 +115,7 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
     return 1.0;
 
   Tbl_=chain_->getTransformations(q);
+
   vl_in_b_=chain_->getTwist(q,dq);
 
   s_ref_=1.0;

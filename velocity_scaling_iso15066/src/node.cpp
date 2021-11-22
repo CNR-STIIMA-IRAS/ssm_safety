@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ros/ros.h>
+#include <ros/console.h>
 #include <rosdyn_core/primitives.h>
 #include <velocity_scaling_iso15066/ssm15066.h>
 #include <random>
@@ -139,6 +140,7 @@ int main(int argc, char **argv)
 
   std::string pose_frame_id;
 
+  int iter=0;
   ros::Time last_pose_topic=ros::Time(0);
   while (ros::ok())
   {
@@ -154,6 +156,26 @@ int main(int argc, char **argv)
       }
       unscaled_joint_target_received=true;
     }
+
+    /* Print links and poses for debug */
+    if (iter==500 || iter==0)
+    {
+      auto links = chain->getLinks();
+      std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl = chain->getTransformations(q);
+
+      ROS_INFO("Links used for safety check: %d",links.size());
+      for (unsigned int idx=0;idx<links.size();idx++)
+      {
+        double x = Tbl.at(idx).translation()(0);
+        double y = Tbl.at(idx).translation()(1);
+        double z = Tbl.at(idx).translation()(2);
+        std::cout << "#" << idx << " : " << links.at(idx)->getName() << "\t";
+        std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
+      }
+      iter=1;
+    }
+    iter++;
+
 
     if (obstacle_notif.isANewDataAvailable())
     {
