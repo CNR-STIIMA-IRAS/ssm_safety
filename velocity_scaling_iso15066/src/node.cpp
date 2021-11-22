@@ -127,6 +127,7 @@ int main(int argc, char **argv)
   Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
 
   ssm15066::DeterministicSSM ssm(chain);
+
   ssm.setPointCloud(pc_in_b);
 
   Eigen::VectorXd q(nAx);
@@ -205,7 +206,7 @@ int main(int argc, char **argv)
 
         collision_object.header.frame_id=base_frame;
         collision_object.header.stamp=ros::Time::now();
-        collision_object.pose.orientation.w=1;
+//        collision_object.pose.orientation.w=1;
 //        collision_object.id="skeleton_obs";
         if (poses.poses.size()>0)
         {

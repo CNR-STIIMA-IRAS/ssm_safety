@@ -89,9 +89,9 @@ public:
 typedef shared_ptr_namespace::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
 typedef shared_ptr_namespace::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
 
-inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1, const ros::NodeHandle nh)
+inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh)
 {
-  chain_=chain1;
+  chain_=chain;
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
 
