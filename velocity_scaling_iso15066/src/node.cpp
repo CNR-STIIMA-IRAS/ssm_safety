@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <name_sorting/name_sorting.h>
 
 int main(int argc, char **argv)
 {
@@ -149,10 +150,16 @@ int main(int argc, char **argv)
     bool error=false;
     if (js_notif.isANewDataAvailable())
     {
+      std::vector<double> pos = js_notif.getData().position;
+      std::vector<double> vel = js_notif.getData().velocity;
+
+      std::vector<std::string> tmp_names = js_notif.getData().name;
+      name_sorting::permutationName(joint_names,tmp_names,pos,vel);
+
       for (unsigned int iax=0;iax<nAx;iax++)
       {
-        q(iax)=js_notif.getData().position.at(iax);
-        dq(iax)=js_notif.getData().velocity.at(iax);
+        q(iax)=pos.at(iax);
+        dq(iax)=vel.at(iax);
       }
       unscaled_joint_target_received=true;
     }
@@ -172,6 +179,13 @@ int main(int argc, char **argv)
         std::cout << "#" << idx << " : " << links.at(idx)->getName() << "\t";
         std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
       }
+
+      ROS_INFO("Joints used for safety check: %d",joint_names.size());
+      for (unsigned int idx=0;idx<joint_names.size();idx++)
+      {
+        std::cout << idx << ": " << joint_names.at(idx) << " : " << q(idx) << std::endl;
+      }
+
       iter=1;
     }
     iter++;
