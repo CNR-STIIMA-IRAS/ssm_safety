@@ -313,6 +313,7 @@ int main(int argc, char **argv)
         vc_in_b.resize(3,0);
         ssm.setPointCloud(pc_in_b);
         ssm.setPointCloudTwist(vc_in_b);
+        error=true;
       }
 
       if (not unscaled_joint_target_received)
@@ -332,7 +333,7 @@ int main(int argc, char **argv)
 
       ovr=min_ovr;
 
-    } // endfor robot list
+    } // endfor obstacle notifiers
 
     if (ovr>(last_ovr+pos_ovr_change))
       ovr=last_ovr+pos_ovr_change;
