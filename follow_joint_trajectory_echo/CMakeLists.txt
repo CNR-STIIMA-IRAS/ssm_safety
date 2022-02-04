@@ -13,13 +13,15 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   actionlib
+  moveit_planning_helper
+  moveit_msgs
 )
 
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES #velocity_scaling_iso15066
-  CATKIN_DEPENDS control_msgs subscription_notifier roscpp std_msgs actionlib
+  CATKIN_DEPENDS control_msgs moveit_planning_helper moveit_msgs subscription_notifier roscpp std_msgs actionlib
 )
 
 include_directories(

@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "follow_joint_trajectory_echo");
-  ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
 
   /*
    * Add getParam
@@ -43,7 +43,16 @@ int main(int argc, char **argv)
    * Handle re-planning in class
    */
 
-  EchoFollowJointTrajectoryAction echoer("/manipulator/follow_joint_trajectory_fake");
+  std::string group_name;
+  if (!pnh.getParam("group_name",group_name))
+  {
+    ROS_FATAL("%s/group_name is not defined. Exit.", pnh.getNamespace().c_str());
+    return 0;
+  }
+
+  EchoFollowJointTrajectoryAction echoer(pnh, group_name);
+
+  echoer.init();
 
   ROS_INFO("EchoFollowJointTrajectoryAction created");
 

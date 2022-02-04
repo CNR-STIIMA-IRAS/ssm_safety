@@ -60,6 +60,9 @@
   <exec_depend>std_msgs</exec_depend>
   <depend>subscription_notifier</depend>
   <depend>actionlib</depend>
+  <depend>moveit_planning_helper</depend>
+  <depend>moveit_msgs</depend>
+
 
 
   <!-- The export tag contains other, unspecified, tags -->
