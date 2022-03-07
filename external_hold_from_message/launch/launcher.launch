@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="external_hold_from_message" name="external_hold_from_message_node" type="external_hold_from_message_node" output="screen" />
+
+</launch>
