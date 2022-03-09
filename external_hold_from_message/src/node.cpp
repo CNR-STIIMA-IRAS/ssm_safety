@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     }
     else if (state = PAUSE)
     {
-      scaling-=1;
+      scaling-=5;
       if (scaling<=0)
         scaling=0;
     }
