@@ -78,7 +78,7 @@ int main(int argc, char **argv)
       if (scaling>=100)
         scaling=100;
     }
-    else if (state = PAUSE)
+    else if (state == PAUSE)
     {
       scaling-=5;
       if (scaling<=0)
