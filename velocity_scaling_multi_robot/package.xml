@@ -16,6 +16,7 @@
   <exec_depend>robot_state_controller_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>velocity_scaling_iso15066</exec_depend>
+  <depend>octomap</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
