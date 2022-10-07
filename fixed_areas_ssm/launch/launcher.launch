@@ -1,6 +1,6 @@
 <launch>
 
   <rosparam file="$(find package_name)/config/config.yaml" command="load"/>
-  <node pkg="fixed_areas_ssm.cpp" name="fixed_areas_ssm" type="fixed_areas_ssm.cpp" output="screen" />
+  <node pkg="fixed_areas_ssm" name="fixed_areas_ssm" type="fixed_areas_ssm_node" output="screen" />
 
 </launch>
