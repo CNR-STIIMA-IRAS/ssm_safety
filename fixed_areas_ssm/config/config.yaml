@@ -1,10 +1,10 @@
 ssm:
-  override_increase_speed: 10 # [%/s]
-  override_decrease_speed: 100 # [%/s]
-  areas:
+  override_increase_speed: 10 # [%/s] the lower the smoother the speed increase
+  override_decrease_speed: 100 # [%/s] the lower the smoother (and slower) the robot slows down
+  areas: # areas are in 2D from top view
   - name: "area0"
-    override: 50
-    corners:
+    override: 50 # [% of nominal speed] speed limit in area0 
+    corners: # [m] areas are defined as rectangles in 2D from top view
     - [0,0]
     - [0,  1.9]
     - [1.8,1.9]
@@ -16,7 +16,6 @@ ssm:
     - [0,1.5]
     - [1.8,1.5]
     - [1.8,0]
-
   - name: "stop_area"
     override: 0
     corners:
