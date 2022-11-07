@@ -13,6 +13,9 @@ The module publishes:
 
 - safe_ovr_1: a message of the type std_msgs::Int64 containing the safety override 0-100 (the topics are two, with the same content, to have a redundant communication channel) 
 
+
+### Example of configuration
+
 ```yaml
 base_frame: "world"   # root of the chain
 tool_frame: "open_tip"   # end of the chain
@@ -24,3 +27,5 @@ test_links:  # links fo the robot used for evaluating the distance
 minimum_distance: 0.3  # optional (default: 0.3). Minimal distance (meter), if slower the robot will stop
 maximum_cartesian_acceleration: 0.1  # optional (default: 0.1). Maximum cartesian acceleration (m/s^2)
 ```
+
+An implementation example can be found [here](https://bitbucket.org/iras-ind/sharework_cell/src/stam/sharework_cembre_safety/).
