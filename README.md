@@ -40,4 +40,3 @@ The concept behind the implementation of package velocity_scaling_iso15066 was d
   publisher={IEEE}
 }
 ```
-Available at
