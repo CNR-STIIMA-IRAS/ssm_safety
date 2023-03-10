@@ -79,6 +79,12 @@ int main(int argc, char **argv)
     ROS_ERROR("%s/publish_obstacles not defined, set false",nh.getNamespace().c_str());
     publish_obstacles = false;
   }
+  bool publish_scaling;
+  if (!nh.getParam("publish_scaling",publish_scaling))
+  {
+    ROS_ERROR("%s/publish_scaling not defined, set true",nh.getNamespace().c_str());
+    publish_obstacles = true;
+  }
 
   double sphere_radius;
   if(publish_obstacles)
@@ -302,13 +308,14 @@ int main(int argc, char **argv)
       ovr=last_ovr-neg_ovr_change;
     last_ovr=ovr;
     ovr_msg.data=100*ovr;
-    ovr_pb.publish(ovr_msg);
-
     std_msgs::Float32 msg_float;
-    msg_float.data=ovr_msg.data;
-    ovr_float_pb.publish(msg_float);
-    ROS_DEBUG_STREAM_THROTTLE(1,"ovr = " << ovr_msg.data);
-
+    if(publish_scaling)
+    {
+      ovr_pb.publish(ovr_msg);
+      msg_float.data=ovr_msg.data;
+      ovr_float_pb.publish(msg_float);
+      ROS_DEBUG_STREAM_THROTTLE(1,"ovr = " << ovr_msg.data);
+    }
     msg_float.data=ssm.getDistanceFromClosestPoint();
     dist_pb.publish(msg_float);
 

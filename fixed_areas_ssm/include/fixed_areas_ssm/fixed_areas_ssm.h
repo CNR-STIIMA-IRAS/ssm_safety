@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <geometry_msgs/PoseArray.h>
 #include <rosparam_utilities/rosparam_utilities.h>
 #include <std_msgs/Int64.h>
+#include <std_msgs/Float32.h>
+
 namespace safety
 {
 
