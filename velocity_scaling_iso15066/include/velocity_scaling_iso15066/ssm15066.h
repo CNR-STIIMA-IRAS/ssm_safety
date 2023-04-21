@@ -95,6 +95,17 @@ inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain, const r
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
 
+  // min_distance_=0.3;
+  // if (!nh.getParam("min_iso15066_dist",min_distance_))
+  // {
+  //   ROS_DEBUG("min_iso15066_dist is not set, default=0.3");
+  // }
+  // self_distance_=nh.param("self_distance",0.0);
+  // max_cart_acc_=0.1;
+  // if (!nh.getParam("maximum_cartesian_acceleration",max_cart_acc_))
+  // {
+  //   ROS_DEBUG("maximum_cartesian_acceleration is not set, default=0.1");
+  // }
   min_distance_=nh.param("minimum_distance",0.3);
   self_distance_=nh.param("self_distance",0.0);
   max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
@@ -120,14 +131,17 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
 
   s_ref_=1.0;
   dist_from_closest_=std::numeric_limits<double>::infinity();
+
   for (Eigen::Index ic=0;ic<pc_in_b_.cols();ic++)
   {
     for (size_t il=0;il<Tbl_.size();il++)
     {
+      //distances between robot and points in cloud
       d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
       distance_=d_lc_in_b_.norm();
       if (distance_<self_distance_)
         continue;
+      //robots velocity in direction of obstacle point
       tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
       if (tangential_speed_<=0)  // robot is going away
       {
@@ -135,6 +149,7 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
       }
       else if (distance_>min_distance_)
       {
+        //max allowable speed for s_ref_ = 1.0, only variable is distance and tangential speed
         vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-dist_dec_;
         s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
       }

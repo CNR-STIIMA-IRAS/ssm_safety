@@ -310,7 +310,7 @@ int main(int argc, char **argv)
     ROS_DEBUG_STREAM_THROTTLE(1,"ovr = " << ovr_msg.data);
 
     msg_float.data=ssm.getDistanceFromClosestPoint();
-    dist_pb.publish(msg_float);
+    if ((msg_float.data>=0)&&(msg_float.data<10)) dist_pb.publish(msg_float);
 
     lp.sleep();
   }
