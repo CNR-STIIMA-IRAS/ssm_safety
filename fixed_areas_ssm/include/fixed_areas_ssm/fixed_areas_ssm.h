@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Point.h>
 #include <rosparam_utilities/rosparam_utilities.h>
 #include <std_msgs/Int64.h>
 #include <std_msgs/Float32.h>
@@ -140,11 +141,14 @@ namespace safety
     ros::Time last_time_;
     double override_increase_speed_=10;
     double override_decrease_speed_=10;
+    bool first_agent_in_area_;
+
   public:
     FixedAreasSSM(const ros::NodeHandle& nh):
       nh_(nh)
     {
       override_=0;
+      first_agent_in_area_ = false;
       last_time_=ros::Time(0);
     }
 
@@ -246,11 +250,13 @@ namespace safety
 
     double checkArea(const std::vector<double>& p, double& override)
     {
+      first_agent_in_area_ = false;
       for (const std::pair<std::string,ConvexPolygonPtr>& area: areas_)
       {
         if (area.second->inPolygon(p))
         {
           override=std::min(override,area.second->getOverride());
+          first_agent_in_area_ = true;
         }
       }
     }
@@ -287,5 +293,51 @@ namespace safety
       return override_;
     }
 
+    double getOverride(const std::vector<geometry_msgs::Point>& agent_points)
+    {
+      double target_override = target_override_;
+      ROS_INFO_STREAM("Human in area"<<first_agent_in_area_);
+      if(not secondAgentInArea(agent_points))
+      {
+        target_override = 100;
+      }
+
+      if (last_time_==ros::Time(0))
+        last_time_=ros::Time::now();
+
+      ros::Time t=ros::Time::now();
+      double dt=(t-last_time_).toSec();
+      last_time_=t;
+      double diff_ovr=target_override-override_;
+      if (diff_ovr>dt*override_increase_speed_)
+        diff_ovr=dt*override_increase_speed_;
+      else if (diff_ovr<-dt*override_decrease_speed_)
+        diff_ovr=-dt*override_decrease_speed_;
+
+      override_+=diff_ovr;
+      return override_;
+    }
+    bool secondAgentInArea(const std::vector<geometry_msgs::Point>& agent_points)
+    {
+      bool agent_in_one_area = false;
+      std::vector<double> p(2);
+      for (const geometry_msgs::Point point: agent_points)
+      {
+        p.at(0)=point.x;
+        p.at(1)=point.y;
+        for (const std::pair<std::string,ConvexPolygonPtr>& area: areas_)
+        {
+          if (area.second->inPolygon(p))
+          {
+            agent_in_one_area = true;
+          }
+        }
+      }
+      return agent_in_one_area;
+    }
+    double getTargetOvr()
+    {
+      return target_override_;
+    }
   };
 }

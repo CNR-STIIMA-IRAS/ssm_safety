@@ -8,12 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   subscription_notifier
   rosparam_utilities
+  rosdyn_core
+  name_sorting
 )
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES fixed_areas_ssm
  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs subscription_notifier rosparam_utilities
- DEPENDS 
+ DEPENDS
 )
 
 include_directories(
@@ -42,5 +44,3 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-
-
