@@ -59,13 +59,18 @@ int main(int argc, char **argv)
     return false;
   }
 
+
   double C=0.01; // min distance
   double max_cart_acc=1;  // m/s^2
   double t_r=0.1;  // reaction time;
 
 
   rosdyn::ChainPtr chain = rosdyn::createChain(model,base_frame,tool_frame,grav);
+  std::vector<std::string> link_names = chain->getLinksName();
 
+  std::vector<std::string> poi_names;
+  if(not nh.getParam("test_links",poi_names))
+    poi_names = link_names;
 
   std::vector<std::string> joint_names=chain->getMoveableJointNames();
   size_t nAx=joint_names.size();
@@ -82,11 +87,9 @@ int main(int argc, char **argv)
     inv_velocity_limits(iAx) = 1./model.getJoint(joint_names.at(iAx))->limits->velocity;
   }
 
-
   int np=5;
   Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
   pc_in_b.resize(3,std::pow(np,3));
-
 
   double ub=2;
   double lb=1;
@@ -165,6 +168,9 @@ int main(int argc, char **argv)
     {
       for (size_t il=0;il<Tbl.size();il++)
       {
+        if(std::find(poi_names.begin(),poi_names.end(),link_names[il])>=poi_names.end())
+          continue;
+
         Eigen::Vector3d d_lc_in_b=Tbl.at(il).translation()-pc_in_b.col(ic);
         double distance=d_lc_in_b.norm();
         double s_ref_lc;

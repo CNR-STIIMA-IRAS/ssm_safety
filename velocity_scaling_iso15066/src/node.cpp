@@ -117,6 +117,7 @@ int main(int argc, char **argv)
     inv_velocity_limits(iAx) = 1./model.getJoint(joint_names.at(iAx))->limits->velocity;
   }
 
+  // Loading links to test for ssm
   std::vector<std::string> test_links;
   if (!nh.getParam("test_links",test_links))
   {
@@ -174,7 +175,7 @@ int main(int argc, char **argv)
     /* Print links and poses for debug */
     if (iter==500 || iter==0)
     {
-      auto links = chain->getLinksName();
+      std::vector<std::string> links = chain->getLinksName();
       std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl = chain->getTransformations(q);
 
       std::vector<std::string> poi_names = ssm.getPoiNames();
