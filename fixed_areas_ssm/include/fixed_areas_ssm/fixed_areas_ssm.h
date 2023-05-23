@@ -296,7 +296,7 @@ namespace safety
     double getOverride(const std::vector<geometry_msgs::Point>& agent_points)
     {
       double target_override = target_override_;
-      ROS_INFO_STREAM("Human in area"<<first_agent_in_area_);
+//      ROS_INFO_STREAM("Human in area: "<<first_agent_in_area_);
       if(not secondAgentInArea(agent_points))
       {
         target_override = 100;

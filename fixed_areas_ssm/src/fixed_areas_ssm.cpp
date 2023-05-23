@@ -57,31 +57,23 @@ int main(int argc, char** argv)
   }
 
   std::vector<std::string> links_to_test = chain->getLinksName();
-  for(std::string link_name: links_to_test)
-  {
-      ROS_INFO_STREAM("Link name in chain: "<< link_name);
-  }
-  ROS_INFO_STREAM("---------------------");
 
   if (!nh.getParam("links_test", links_to_test))
   {
     ROS_INFO_STREAM("Unable to load links_test. It is set to all chain links.");
   }
-
   for(std::string link_name: links_to_test)
   {
-      ROS_INFO_STREAM("Link name in chain: "<< link_name);
+      ROS_INFO_STREAM("Link name to test: "<< link_name);
   }
+
 
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
   std::vector<std::string> joint_names=chain->getMoveableJointNames();
   size_t nAx=joint_names.size();
   ROS_INFO_STREAM("N moveable joint: " << nAx);
 
-  for(int k=0;k<joint_names.size();k++)
-  {
-    ROS_INFO_STREAM(joint_names[k]);
-  }
+
   /*
   std::vector<std::string> links_names = chain_->getLinksName();
   size_t nAx=joint_names.size();
@@ -115,7 +107,7 @@ int main(int argc, char** argv)
   while (ros::ok())
   {
     ros::spinOnce();
-    ROS_INFO_STREAM("Target ovr: "<< ssm.getTargetOvr());
+//    ROS_INFO_STREAM("Target ovr: "<< ssm.getTargetOvr());
     if(both_agent_checking)
     {
       if (js_notif.isANewDataAvailable())
@@ -146,7 +138,6 @@ int main(int argc, char** argv)
             geometry_msgs::Point point;
             point.x = T_poi_base_link.translation()(0);
             point.y = T_poi_base_link.translation()(1);
-            //point.x = T_poi_base_link.translation()(0);
             agent_points.push_back(point);
 
 //            std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
@@ -182,31 +173,4 @@ int main(int argc, char** argv)
 }
 
 
-/*
-  std::vector<Eigen::Affine3d, Eigen:: aligned_allocator<Eigen::Affine3d>> T_poi_base_links = chain->getTransformations(q);
-  ROS_INFO_STREAM("quiii dim: "<< T_poi_base_links.size());
-  auto links = chain->getLinks();
-  for (unsigned int idx=0;idx<links.size();idx++)
-  {
-    ROS_INFO_STREAM("Link: "<< idx<< ", name: " << links[idx]->getName());
 
-    double x = T_poi_base_links.at(idx).translation()(0);
-    double y = T_poi_base_links.at(idx).translation()(1);
-    double z = T_poi_base_links.at(idx).translation()(2);
-    std::cout << "#" << idx << " : " << links.at(idx)->getName() << "\t";
-    std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
-  }
-  */
-/*
-  for (unsigned int idx_poi=0;idx_poi<T_poi_base_links.size();idx_poi++)
-  {
-    std::cout << "#" << idx_poi << " : " << joint_names.at(idx_poi) << "\t";
-    if(std::find(links_to_test.begin(), links_to_test.end(), joint_names[idx_poi])>=links_to_test.end())
-      continue;
-    double x = T_poi_base_links.at(idx_poi).translation()(0);
-    double y = T_poi_base_links.at(idx_poi).translation()(1);
-    double z = T_poi_base_links.at(idx_poi).translation()(2);
-    std::cout << "#" << idx_poi << " : " << joint_names.at(idx_poi) << "\t";
-    std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
-  }
-*/
