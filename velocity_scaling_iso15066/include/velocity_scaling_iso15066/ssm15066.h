@@ -41,6 +41,8 @@ protected:
 
   Eigen::VectorXd inv_velocity_limits_;
 
+  std::vector<std::string> links_names_;
+  std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
   double self_distance_=0.2;
   double min_distance_=0.3  ; // min distance
@@ -48,11 +50,13 @@ protected:
   double t_r_=0.15;  // reaction time;
   double dist_dec_;
   double term1_;
+  double term2_;
   double distance_;
   double s_ref_lc_;
   double s_ref_;
   double tangential_speed_;
   double vmax_;
+  double vh_;
   double dist_from_closest_;
 
   Eigen::Vector3d d_lc_in_b_;
@@ -68,6 +72,11 @@ public:
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq);
   double getDistanceFromClosestPoint();
+
+  std::vector<std::string> getPoiNames()
+  {
+    return poi_names_;
+  }
 };
 
 class ProbabilisticSSM: public DeterministicSSM
@@ -94,18 +103,27 @@ inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain, const r
   chain_=chain;
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
+  links_names_ = chain_->getLinksName();
 
+  vh_ = nh.param("human_velocity",0.0);
   min_distance_=nh.param("minimum_distance",0.3);
   self_distance_=nh.param("self_distance",0.0);
   max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
   t_r_=nh.param("reaction_time",0.15);
 
+  if(not nh.getParam("test_links",poi_names_))
+    poi_names_ = links_names_;
+
   ROS_INFO("[%s]: Minimum distance               =  %f",nh.getNamespace().c_str(),min_distance_);
   ROS_INFO("[%s]: Maximum Cartesian acceleration =  %f",nh.getNamespace().c_str(),max_cart_acc_);
   ROS_INFO("[%s]: reaction time                  =  %f",nh.getNamespace().c_str(),t_r_);
+  ROS_INFO("[%s]: test links:    ",nh.getNamespace().c_str());
+  for(const std::string& poi:poi_names_)
+    ROS_INFO_STREAM(poi);
 
-  dist_dec_=max_cart_acc_*t_r_;
-  term1_=std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
+  dist_dec_ = max_cart_acc_*t_r_;
+  term2_=dist_dec_+vh_;
+  term1_=std::pow(vh_,2)+std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
 }
 
 inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
@@ -124,6 +142,10 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
   {
     for (size_t il=0;il<Tbl_.size();il++)
     {
+      //consider only links inside the poi_names_ list
+      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+        continue;
+
       d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
       distance_=d_lc_in_b_.norm();
       if (distance_<self_distance_)
@@ -135,7 +157,7 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
       }
       else if (distance_>min_distance_)
       {
-        vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-dist_dec_;
+        vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
         s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
       }
       else  //distance<=min_distance
@@ -179,6 +201,10 @@ inline double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const E
     dist_from_closest_=std::numeric_limits<double>::infinity();
     for (size_t il=0;il<Tbl_.size();il++)
     {
+      //consider only links inside the poi_names_ list
+      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+        continue;
+
       d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
       distance_=d_lc_in_b_.norm();
       if (distance_<dist_from_closest_)
@@ -190,7 +216,7 @@ inline double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const E
       }
       else if (distance_>min_distance_)
       {
-          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-dist_dec_;
+          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
           s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
       }
       else  //distance<=min_distance

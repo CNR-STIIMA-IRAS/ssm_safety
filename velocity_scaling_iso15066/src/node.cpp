@@ -72,6 +72,7 @@ int main(int argc, char **argv)
     ROS_ERROR("tool_link not defined");
     return 0;
   }
+
   // Loading publishing obstacles information
   bool publish_obstacles;
   if (!nh.getParam("publish_obstacles",publish_obstacles))
@@ -122,6 +123,13 @@ int main(int argc, char **argv)
     inv_velocity_limits(iAx) = 1./model.getJoint(joint_names.at(iAx))->limits->velocity;
   }
 
+  // Loading links to test for ssm
+  std::vector<std::string> test_links;
+  if (!nh.getParam("test_links",test_links))
+  {
+    ROS_ERROR("test_links not defined, use all the available links");
+    test_links = chain->getLinksName();
+  }
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("/safe_ovr_1",1);
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
@@ -173,20 +181,26 @@ int main(int argc, char **argv)
     /* Print links and poses for debug */
     if (iter==500 || iter==0)
     {
-      auto links = chain->getLinks();
+      std::vector<std::string> links = chain->getLinksName();
       std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl = chain->getTransformations(q);
 
-      ROS_INFO("Links used for safety check: %d",links.size());
+      std::vector<std::string> poi_names = ssm.getPoiNames();
+
+      ROS_INFO("Links used for safety check: %d",poi_names.size());
       for (unsigned int idx=0;idx<links.size();idx++)
       {
+        //consider only links inside the poi_names_ list
+        if(std::find(poi_names.begin(),poi_names.end(),links[idx])>=poi_names.end())
+          continue;
+
         double x = Tbl.at(idx).translation()(0);
         double y = Tbl.at(idx).translation()(1);
         double z = Tbl.at(idx).translation()(2);
-        std::cout << "#" << idx << " : " << links.at(idx)->getName() << "\t";
+        std::cout << "#" << idx << " : " << links.at(idx) << "\t";
         std::cout << "[x,y,z] = " << "[" << x << ", " << y << ", " << z << "]" << std::endl;
       }
 
-      ROS_INFO("Joints used for safety check: %d",joint_names.size());
+      ROS_INFO("Joints values: %d",joint_names.size());
       for (unsigned int idx=0;idx<joint_names.size();idx++)
       {
         std::cout << idx << ": " << joint_names.at(idx) << " : " << q(idx) << std::endl;
@@ -248,8 +262,8 @@ int main(int argc, char **argv)
 
         collision_object.header.frame_id=base_frame;
         collision_object.header.stamp=ros::Time::now();
-//        collision_object.pose.orientation.w=1;
-//        collision_object.id="skeleton_obs";
+        //        collision_object.pose.orientation.w=1;
+        //        collision_object.id="skeleton_obs";
         if (poses.poses.size()>0)
         {
           pose_frame_id = "skeleton_obj_";
