@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Int64.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -91,6 +92,13 @@ int main(int argc, char **argv)
     }
   }
 
+  double time_remove_old_objects;
+  if(!nh.getParam("time_remove_old_objects",time_remove_old_objects))
+  {
+    ROS_ERROR("%s/time_remove_old_objects not defined, set 0.5",nh.getNamespace().c_str());
+    time_remove_old_objects = 0.5;
+  }
+
   tf::TransformListener listener;
 
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -127,7 +135,10 @@ int main(int argc, char **argv)
 
   ros::Publisher ovr_pb=nh.advertise<std_msgs::Int64>("/safe_ovr_1",1);
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
+  ros::Publisher ovr_float64_pb=nh.advertise<std_msgs::Float64>("/safe_ovr_1_float64",1);
   ros::Publisher dist_pb=nh.advertise<std_msgs::Float32>("/min_distance_from_poses",1);
+  ros::Publisher dist_float64_pb=nh.advertise<std_msgs::Float64>("/min_distance_from_poses_float64",1);
+
   ros_helper::SubscriptionNotifier<geometry_msgs::PoseArray> obstacle_notif(nh,"/poses",1);
 
   ros_helper::SubscriptionNotifier<sensor_msgs::JointState> js_notif(nh,"/unscaled_joint_target",1);
@@ -290,12 +301,11 @@ int main(int argc, char **argv)
     }
 
     // poses is old
-    if ((ros::Time::now()-last_pose_topic).toSec()>0.5)
+    if ((ros::Time::now()-last_pose_topic).toSec()>time_remove_old_objects)
     {
       pc_in_b.resize(3,0);
       ssm.setPointCloud(pc_in_b);
     }
-
 
     if (not unscaled_joint_target_received)
       ROS_INFO_THROTTLE(2,"unscaled joint target topic has been received yet");
@@ -310,11 +320,15 @@ int main(int argc, char **argv)
     if (error)
       ovr=0.0;
 
+    if(ovr<0)
+      ovr = 0.0;
+
     if (ovr>(last_ovr+pos_ovr_change))
       ovr=last_ovr+pos_ovr_change;
     else if (ovr<(last_ovr-neg_ovr_change))
       ovr=last_ovr-neg_ovr_change;
     last_ovr=ovr;
+
     ovr_msg.data=100*ovr;
     ovr_pb.publish(ovr_msg);
 
@@ -325,6 +339,13 @@ int main(int argc, char **argv)
 
     msg_float.data=ssm.getDistanceFromClosestPoint();
     dist_pb.publish(msg_float);
+
+    std_msgs::Float64 msg_float64;
+    msg_float64.data=ovr_msg.data;
+    ovr_float64_pb.publish(msg_float64);
+
+    msg_float64.data=ssm.getDistanceFromClosestPoint();
+    dist_float64_pb.publish(msg_float64);
 
     lp.sleep();
   }
