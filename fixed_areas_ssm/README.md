@@ -3,7 +3,7 @@
 The module needs the position of the human in the cell. The robot slows down if the human enters in predefined zones.
 The module subscribes:  
 
-- /poses_ a message of the type geometry_msgs::PoseArray containing the poses of human body parts (i.e. a human) in the scene reference frame. 
+- /poses a message of the type geometry_msgs::PoseArray containing the poses of human body parts (i.e. a human) in the scene reference frame. 
 
 The module publishes: 
 
