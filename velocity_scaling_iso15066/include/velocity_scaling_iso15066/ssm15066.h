@@ -157,7 +157,7 @@ inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
       }
       else if (distance_>min_distance_)
       {
-        vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
+        vmax_=std::max(std::sqrt(term1_ + 2.0 * max_cart_acc_ * distance_) - term2_, 0.0);
         s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
       }
       else  //distance<=min_distance
@@ -216,7 +216,7 @@ inline double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const E
       }
       else if (distance_>min_distance_)
       {
-          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
+          vmax_=std::max(std::sqrt(term1_ + 2.0 * max_cart_acc_ * distance_) - term2_, 0.0);
           s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
       }
       else  //distance<=min_distance
