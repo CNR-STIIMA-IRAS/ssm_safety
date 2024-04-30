@@ -34,3 +34,11 @@
 *~
 *txt.user*
 *kdev4*
+
+build/
+Testing/
+.cache/
+.vscode/
+
+compile_commands.json
+
