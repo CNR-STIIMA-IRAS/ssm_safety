@@ -30,7 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <rosdyn_core/primitives.h>
+
+#include <rdyn_core/primitives.h>
 
 namespace ssm15066 {
 
