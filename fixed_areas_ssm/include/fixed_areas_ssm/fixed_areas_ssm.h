@@ -30,22 +30,66 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <geometry_msgs/PoseArray.h>
 #include <rosparam_utilities/rosparam_utilities.h>
 #include <std_msgs/Int64.h>
+#include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
+
 namespace safety
 {
 
-  class ConvexPolygon
+  class Shape
+  {
+  protected:
+    double override_;
+
+  public:
+    Shape(const double& override):
+      override_(override){};
+
+    double getOverride(){return override_;}
+
+    virtual bool checkArea(const std::vector<double>& p)=0;
+
+  };
+  typedef std::shared_ptr<Shape> ShapePtr;
+
+  class Circle : public Shape
+  {
+  protected:
+    double radius_;
+
+  public:
+    Circle(const double& radius, const double& override):
+      Shape(override), radius_(radius)
+    {
+      ROS_DEBUG("loading circular area with maximum override=%f, with radius %f", override_, radius_);
+      if (radius_<=0)
+      {
+        ROS_FATAL("radius must be positive");
+        assert(radius_>0);
+      }
+    }
+
+    bool checkArea(const std::vector<double>& p)
+    {
+      return (p[0]*p[0] + p[1]*p[1] <= radius_*radius_);
+    }
+  };
+
+  typedef std::shared_ptr<Circle> CirclePtr;
+
+
+
+  class ConvexPolygon : public Shape
   {
   protected:
     std::vector<std::vector<double>> corners_;
     std::vector<std::vector<double>> normals_;
 
-    double override_;
 
   public:
     ConvexPolygon(const std::vector<std::vector<double>>& corners,
                   const double& override):
-      corners_(corners),
-      override_(override)
+      Shape(override), corners_(corners)
     {
       ROS_DEBUG("loading area with maximum override=%f, with the following corners\n", override_);
       normals_.resize(corners_.size());
@@ -105,7 +149,7 @@ namespace safety
       }
     }
 
-    double getOverride(){return override_;}
+
     double dot(const std::vector<double>& p, const std::vector<double>& corner, const std::vector<double>& normal)
     {
       return (p.at(0)-corner.at(0))*normal.at(0)+(p.at(1)-corner.at(1))*normal.at(1);
@@ -124,6 +168,11 @@ namespace safety
       return true;
     }
 
+    bool checkArea(const std::vector<double>& p)
+    {
+      return inPolygon(p);
+    }
+
   };
 
   typedef std::shared_ptr<ConvexPolygon> ConvexPolygonPtr;
@@ -132,9 +181,14 @@ namespace safety
   {
   protected:
     ros::NodeHandle nh_;
-    std::map<std::string,ConvexPolygonPtr> areas_;
-    double override_;
-    double target_override_;
+    std::string base_frame_;
+    tf::TransformListener listener_;
+    Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
+
+
+    std::map<std::string,ShapePtr> areas_;
+    double override_=100;
+    double target_override_=100;
     ros::Time last_time_;
     double override_increase_speed_=10;
     double override_decrease_speed_=10;
@@ -149,6 +203,11 @@ namespace safety
     bool loadAreas()
     {
 
+      if (!nh_.getParam("ssm/base_frame",base_frame_))
+      {
+        ROS_ERROR("Parameter ssm/base_frame does not exist");
+        return false;
+      }
       if (!nh_.getParam("ssm/override_increase_speed",override_increase_speed_))
       {
         ROS_ERROR("Parameter ssm/override_increase_speed does not exist");
@@ -193,75 +252,125 @@ namespace safety
           ROS_WARN("The element #%zu has not the field 'override'", i);
           continue;
         }
-        if( !area.hasMember("corners") )
+        if( !area.hasMember("corners") && !area.hasMember("radius"))
         {
-          ROS_WARN("The element #%zu has not the field 'corners'", i);
+          ROS_WARN("The element #%zu has neither the field 'corners' nor 'radius'", i);
           continue;
         }
 
-        if (area["corners"].getType() != XmlRpc::XmlRpcValue::TypeArray)
-        {
-          ROS_ERROR("The param is not a list of 2Dcorners" );
-          return false;
-        }
-
-        std::vector<std::vector<double>> corners;
-        for(size_t i=0; i < area["corners"].size(); i++)
-        {
-          XmlRpc::XmlRpcValue corner = area["corners"][i];
-          if (corner.getType() != XmlRpc::XmlRpcValue::TypeArray)
-          {
-            ROS_ERROR("The corner is not a vector" );
-            return false;
-          }
-
-          if (corner.size()!=2)
-          {
-            ROS_ERROR("The corner is not a 2d vector" );
-            return false;
-          }
-
-          std::vector<double> c(2);
-          c.at(0)=rosparam_utilities::fromXmlRpcValue<double>(corner[0]);
-          c.at(1)=rosparam_utilities::fromXmlRpcValue<double>(corner[1]);
-          corners.push_back(c);
-        }
-        std::string name=area["name"];
         double ovr=rosparam_utilities::fromXmlRpcValue<double>(area["override"]);
         if (ovr<0 || ovr>100)
         {
           ROS_ERROR("override cannot be <0 or >100");
           return false;
         }
-        ROS_DEBUG("creating a polygon named %s",name.c_str());
-        ConvexPolygonPtr poly=std::make_shared<ConvexPolygon>(corners,ovr);
 
-        areas_.insert(std::pair<std::string,ConvexPolygonPtr>(name,poly));
+        std::string name=area["name"];
+
+
+        if(area.hasMember("corners"))
+        {
+          if (area["corners"].getType() != XmlRpc::XmlRpcValue::TypeArray)
+          {
+            ROS_ERROR("The param is not a list of 2Dcorners" );
+            return false;
+          }
+
+          std::vector<std::vector<double>> corners;
+          for(size_t i=0; i < area["corners"].size(); i++)
+          {
+            XmlRpc::XmlRpcValue corner = area["corners"][i];
+            if (corner.getType() != XmlRpc::XmlRpcValue::TypeArray)
+            {
+              ROS_ERROR("The corner is not a vector" );
+              return false;
+            }
+
+            if (corner.size()!=2)
+            {
+              ROS_ERROR("The corner is not a 2d vector" );
+              return false;
+            }
+
+            std::vector<double> c(2);
+            c.at(0)=rosparam_utilities::fromXmlRpcValue<double>(corner[0]);
+            c.at(1)=rosparam_utilities::fromXmlRpcValue<double>(corner[1]);
+            corners.push_back(c);
+          }
+
+          ROS_DEBUG("creating a polygon named %s",name.c_str());
+          ShapePtr poly=std::make_shared<ConvexPolygon>(corners,ovr);
+
+          areas_.insert(std::pair<std::string,ShapePtr>(name,poly));
+        }
+        else if (area.hasMember("radius"))
+        {
+          double radius=rosparam_utilities::fromXmlRpcValue<double>(area["radius"]);
+
+          ROS_DEBUG("creating a circle named %s",name.c_str());
+          ShapePtr circle=std::make_shared<Circle>(radius,ovr);
+
+          areas_.insert(std::pair<std::string,ShapePtr>(name,circle));
+        }
 
       }
       return true;
     }
 
-    double checkArea(const std::vector<double>& p, double& override)
+    void checkArea(const std::vector<double>& p, double& override)
     {
-      for (const std::pair<std::string,ConvexPolygonPtr>& area: areas_)
+      for (const std::pair<std::string,ShapePtr>& area: areas_)
       {
-        if (area.second->inPolygon(p))
+        if (area.second->checkArea(p))
         {
           override=std::min(override,area.second->getOverride());
+
         }
       }
+      ROS_ERROR_THROTTLE(1.0,"pos= %f %f", p[0], p[1]);
+      ROS_ERROR_THROTTLE(1.0,"ovr =%f", override);
     }
 
-    void callback(const geometry_msgs::PoseArrayConstPtr& msg)
+    virtual void callback(const geometry_msgs::PoseArrayConstPtr& msg)
     {
+      Eigen::Affine3d T_base_camera;
+      T_base_camera.setIdentity();
+      tf::StampedTransform tf_base_camera;
 
-      double override=100;
-      for (const geometry_msgs::Pose& pose: msg->poses)
+
+      if (msg->header.frame_id.compare(base_frame_))
+      {
+
+        if (! listener_.waitForTransform(base_frame_.c_str(),msg->header.frame_id,msg->header.stamp,ros::Duration(0.01)))
+        {
+          ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s. No TF available",msg->header.frame_id.c_str(),base_frame_.c_str());
+        }
+        else
+        {
+          listener_.lookupTransform(base_frame_,msg->header.frame_id,msg->header.stamp,tf_base_camera);
+          tf::poseTFToEigen(tf_base_camera,T_base_camera);
+        }
+      }
+      else
+      {
+        tf::poseEigenToTF(T_base_camera,tf_base_camera);
+      }
+      pc_in_b.resize(3,msg->poses.size());
+      for (size_t ip=0;ip<msg->poses.size();ip++)
+      {
+        Eigen::Vector3d point_in_c;
+        point_in_c(0)=msg->poses.at(ip).position.x;
+        point_in_c(1)=msg->poses.at(ip).position.y;
+        point_in_c(2)=msg->poses.at(ip).position.z;
+        pc_in_b.col(ip)=T_base_camera*point_in_c;
+      }
+
+      double override=100.0;
+      for (size_t idx=0; idx<pc_in_b.cols();idx++)
       {
         std::vector<double> p(2);
-        p.at(0)=pose.position.x;
-        p.at(1)=pose.position.y;
+        p.at(0)=pc_in_b(0,idx);
+        p.at(1)=pc_in_b(1,idx);
         checkArea(p,override);
       }
       target_override_=override;

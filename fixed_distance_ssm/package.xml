@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>fixed_areas_ssm</name>
+  <name>fixed_distance_ssm</name>
   <version>0.0.0</version>
-  <description>The fixed_areas_ssm package</description>
+  <description>The fixed_distance_ssm package</description>
 
   <maintainer email="manuel.beschi@stiima.cnr.it">Manuel Beschi</maintainer>
 
@@ -21,6 +21,9 @@
   <depend>rosparam_utilities</depend>
   <depend>tf</depend>
   <depend>tf_conversions</depend>
+  <depend>fixed_areas_ssm</depend>
+
+
 
   <export>
   </export>

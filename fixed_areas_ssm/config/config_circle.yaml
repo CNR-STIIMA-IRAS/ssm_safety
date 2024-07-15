@@ -1,27 +1,15 @@
 ssm:
+  base_frame: 'tool0'
   override_increase_speed: 10 # [%/s] the lower the smoother the speed increase
   override_decrease_speed: 100 # [%/s] the lower the smoother (and slower) the robot slows down
   areas: # areas are in 2D from top view
   - name: "area0"
     override: 50 # [% of nominal speed] speed limit in area0 
-    corners: # [m] areas are defined as rectangles in 2D from top view
-    - [0,0]
-    - [0,  1.9]
-    - [1.8,1.9]
-    - [1.8,0]
+    radius: 1.2 # [m] distance from base_link
   - name: "area1"
     override: 30
-    corners:
-    - [0,0]
-    - [0,1.5]
-    - [1.8,1.5]
-    - [1.8,0]
+    radius: 0.8
   - name: "stop_area"
     override: 0
-    corners:
-    - [0,0]
-    - [0,1.0]
-    - [1.8,1.0]
-    - [1.8,0]
-
+    radius: 0.5
 

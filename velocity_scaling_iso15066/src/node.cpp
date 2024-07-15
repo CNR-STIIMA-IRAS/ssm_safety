@@ -49,7 +49,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "ssm_iso15066");
   ros::NodeHandle nh("~");
 
-  double st=0.02;
+  double st=0.01;
   double pos_ovr_change=0.25*st;
   double neg_ovr_change=2.0*st;
 
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   std::string base_frame;
   if (!nh.getParam("base_frame",base_frame))
   {
-    ROS_ERROR("%s/base_link not defined",nh.getNamespace().c_str());
+    ROS_ERROR("%s/base_frame not defined",nh.getNamespace().c_str());
     return 0;
   }
   std::string tool_frame;

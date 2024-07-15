@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(fixed_areas_ssm)
+project(fixed_distance_ssm)
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -10,11 +10,12 @@ find_package(catkin REQUIRED COMPONENTS
   rosparam_utilities
   tf
   tf_conversions
+  fixed_areas_ssm
 )
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES fixed_areas_ssm
- CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs subscription_notifier rosparam_utilities tf tf_conversions
+#  LIBRARIES fixed_distance_ssm
+ CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs subscription_notifier rosparam_utilities tf tf_conversions fixed_areas_ssm
  DEPENDS 
 )
 
@@ -23,7 +24,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_node src/fixed_areas_ssm.cpp)
+add_executable(${PROJECT_NAME}_node src/fixed_distance_ssm.cpp)
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}

@@ -1,0 +1,6 @@
+<launch>
+
+  <rosparam file="$(find fixed_distance_ssm)/config/config.yaml" command="load"/>
+  <node pkg="fixed_distance_ssm" name="fixed_distance_ssm" type="fixed_distance_ssm_node" output="screen" />
+
+</launch>
