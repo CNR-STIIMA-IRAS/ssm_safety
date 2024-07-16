@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-
-<launch>
-
-  <node pkg="external_hold_from_message" name="external_hold_from_message_node" type="external_hold_from_message_node" output="screen" >
-    <remap from="/hold_topic" to="/PlayPauseUr10_Publisher" />
-  </node>
-
-</launch>

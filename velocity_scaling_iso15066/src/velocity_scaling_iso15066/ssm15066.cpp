@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (c) 2020, Manuel Beschi 
 CARI Joint Research Lab
 UNIBS-DIMI manuel.beschi@unibs.it
@@ -33,118 +33,302 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ssm15066 {
 
-//DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain1)
-//{
-//  chain_=chain1;
-//  Eigen::VectorXd velocity_limits=chain_->getDQMax();
-//  inv_velocity_limits_=velocity_limits.cwiseInverse();
 
-//  dist_dec_=max_cart_acc_*t_r_;
-//  term1_=std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
-//}
+bool ssm_safe_velocity_limits(const double& vr,
+                      const double& vh,
+                      const double& a,
+                      const double& Tr,
+                      const double& D,
+                      const double& C,
+                      double& solution1,
+                      double& solution2)
+{
+  // D+Sh-Sr>C
+  // D distance
+  // Sr robot travel space during slow down (positive in the direction robot->human)
+  // Sh human travel space during slow down (positive in the direction robot->human)
+  // slow-down time = vr/a, for vr>=0  <----
+  // Sr = (vr*Tr)+Vr^2/a/2
+  // Sh = vh*(Tr+Vr/a)  if human acceleration is zero
+  // slow-down time = -Vr/a, for vr<0  <----
+  // Sr = (vr*Tr)-Vr^2/a/2
+  // Sh = vh*(Tr-Vr/a)  if human acceleration is zero
+  // vrlimit =
+  // Positive velocity
+  // equation: D - Tr*vr + vh*(Tr + vr/a) - vr**2/(2*a)-C>0
+  // solution1: -Tr*a + vh - sqrt(2.0*(D-C)*a + Tr**2*a**2 + vh**2)
+  // solution2: -Tr*a + vh + sqrt(2.0*(D-C)*a + Tr**2*a**2 + vh**2)
+  // solution1 < vr < solution2
+  // Negative velocity
+  // equation: D - Tr*vr + vh*(Tr - vr/a) + 0.5*vr**2/a-C>0
+  // solution1: Tr*a + vh - sqrt(-2.0*(D-C)*a + Tr**2*a**2 + vh**2)
+  // solution2: Tr*a + vh + sqrt(-2.0*(D-C)*a + Tr**2*a**2 + vh**2)
+  // vr<solution1  OR  vr>solution2
 
-//double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
-//                                        const Eigen::VectorXd& dq)
-//{
-
-//  Tbl_=chain_->getTransformations(q);
-//  vl_in_b_=chain_->getTwist(q,dq);
-
-//  s_ref_=1.0;
-//  for (size_t ic=0;ic<pc_in_b_.cols();ic++)
-//  {
-//    for (size_t il=0;il<Tbl_.size();il++)
-//    {
-//      d_lc_in_b_=Tbl_.at(il).translation()-pc_in_b_.col(ic);
-//      distance_=d_lc_in_b_.norm();
-
-//      if (distance_>min_distance_)
-//      {
-//        tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
-//        if (tangential_speed_<=0)  // robot is going away
-//        {
-//          s_ref_lc_=1.0;
-//        }
-//        else
-//        {
-//          //vmax=std::sqrt(std::pow(max_cart_acc*t_r,2)+2*max_cart_acc*(distance-C))-max_cart_acc*t_r;
-//          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-dist_dec_;
-//          s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
-//        }
-//      }
-//      else  //distance<=min_distance
-//      {
-//        //s_ref_lc=0;
-//        return 0.0;
-//      }
-//      if (s_ref_lc_<s_ref_)
-//        s_ref_=s_ref_lc_;
-//    }
-//  }
-//  return s_ref_;
-//}
+  if (D<C)
+  {
+    solution1=0.0;
+    solution2=0.0;
+    return false;
+  }
 
 
-//void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic> &pc_in_b1, const Eigen::VectorXd &occupancy)
-//{
-//  assert(pc_in_b1.cols()==occupancy.rows());
-//  pc_in_b_=pc_in_b1;
-//  occupancy_=occupancy;
-//}
+  if (vr>=0)
+  {
+    double sqrt_discriminant=std::sqrt(2.0*(D-C)*a + std::pow(Tr*a,2.0) + std::pow(vh,2.0));
+    solution1 = -Tr*a + vh + sqrt_discriminant;
+    solution2 = -Tr*a + vh - sqrt_discriminant;
+    // vr > solution1  AND vr < solution2
+    return true;
+  }
+  else // robot velocity is negative
+  {
+    double discriminant=-2.0*(D-C)*a + std::pow(Tr*a,2.0) + std::pow(vh,2.0);
+    if (discriminant>0.0)
+    {
+      double sqrt_discriminant=std::sqrt(discriminant);
+      solution1 = Tr*a + vh + sqrt_discriminant;
+      solution2 = Tr*a + vh - sqrt_discriminant;
+      // vr<solution2 OR vr>solution1
+      return true;
+    }
+    else  // the distance is high, all the negative robot velocities are good
+    {
+      solution1=0.0;
+      solution2=0.0;
+      return true;
+    }
+  }
+}
 
-//double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
-//{
 
-//  scaling_.clear();
-//  Tbl_=chain_->getTransformations(q);
-//  vl_in_b_=chain_->getTwist(q,dq);
+DeterministicSSM::DeterministicSSM(const rdyn::ChainPtr& chain)
+{
+  chain_=chain;
+  Eigen::VectorXd velocity_limits=chain_->getDQMax();
+  inv_velocity_limits_=velocity_limits.cwiseInverse();
+  links_names_ = chain_->getLinksName();
 
-//  for (size_t ic=0;ic<pc_in_b_.cols();ic++)
-//  {
-//    if (occupancy_(ic)<=occupancy_min_)
-//      continue;
-//    double s_ref_c=1;
-//    for (size_t il=0;il<Tbl_.size();il++)
-//    {
-//      d_lc_in_b_=Tbl_.at(il).translation()-pc_in_b_.col(ic);
-//      distance_=d_lc_in_b_.norm();
+}
 
-//      if (distance_>min_distance_)
-//      {
-//        tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
-//        if (tangential_speed_<=0)  // robot is going away
-//        {
-//          s_ref_lc_=1.0;
-//        }
-//        else
-//        {
-//          //vmax=std::sqrt(std::pow(max_cart_acc*t_r,2)+2*max_cart_acc*(distance-C))-max_cart_acc*t_r;
-//          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-dist_dec_;
-//          s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
-//        }
-//      }
-//      else  //distance<=min_distance
-//      {
-//        s_ref_c=0;
-//        break;
-//      }
-//      if (s_ref_lc_<s_ref_c)
-//        s_ref_c=s_ref_lc_;
-//    }
-//    scaling_.insert(std::pair<double,double>(s_ref_c,occupancy_(ic)));
-//  }
+bool DeterministicSSM::setParam()
+{
 
-//  s_ref_=0.0;
-//  double previous_probability=1;
-//  for (const std::pair<double,double>& p: scaling_)
-//  {
-//    // p.first  = scaling
-//    // p.second = occupancy probability
-//    s_ref_+=p.first*p.second*previous_probability;
-//    previous_probability*=(1-p.second);
-//  }
-//  s_ref_+=previous_probability;
-//  return s_ref_;
-//}
+//  default_human_velocities_ = nh.param("human_velocity",0.0);
+//  min_distance_=nh.param("minimum_distance",0.3);
+//  self_distance_=nh.param("self_distance",0.0);
+//  max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
+//  t_r_=nh.param("reaction_time",0.15);
+//  measured_velocities_=nh.param("measured_velocities",false);;
+
+//  if(not nh.getParam("test_links",poi_names_))
+//    poi_names_ = links_names_;
+
+//  ROS_INFO("[%s]: Minimum distance               =  %f",nh.getNamespace().c_str(),min_distance_);
+//  ROS_INFO("[%s]: Maximum Cartesian acceleration =  %f",nh.getNamespace().c_str(),max_cart_acc_);
+//  ROS_INFO("[%s]: reaction time                  =  %f",nh.getNamespace().c_str(),t_r_);
+//  ROS_INFO("[%s]: test links:    ",nh.getNamespace().c_str());
+//  for(const std::string& poi:poi_names_)
+//    ROS_INFO_STREAM(poi);
+
+  dist_dec_ = max_cart_acc_*t_r_;
+  term2_=dist_dec_;
+  term1_=std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
+  if (measured_velocities_)
+  {
+    term1_+=std::pow(default_human_velocity_,2);
+    term2_+=default_human_velocity_;
+  }
+
+//  configured_=true;
+  return false;
+}
+
+void DeterministicSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
+                                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b)
+{
+  human_points_in_b_=human_points_in_b;
+  if (measured_velocities_)
+  {
+    if (human_velocities_in_b.cols()!=human_points_in_b.cols())
+    {
+      throw std::invalid_argument("human points and velocities do not match");
+    }
+    else
+    {
+      human_velocities_in_b_=human_velocities_in_b;
+    }
+  }
+}
+
+
+double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
+                                        const Eigen::VectorXd& dq)
+{
+  if (human_points_in_b_.cols()==0)
+    return 1.0;
+
+  Tbl_=chain_->getTransformations(q);
+
+  vl_in_b_=chain_->getTwist(q,dq);
+
+  s_ref_=1.0;
+  dist_from_closest_=std::numeric_limits<double>::infinity();
+  for (Eigen::Index ic=0;ic<human_points_in_b_.cols();ic++)
+  {
+    for (size_t il=0;il<Tbl_.size();il++)
+    {
+      //consider only links inside the poi_names_ list
+      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+        continue;
+
+      d_lc_in_b_=human_points_in_b_.col(ic)-Tbl_.at(il).translation();
+      distance_=d_lc_in_b_.norm();
+      if (distance_<self_distance_)
+        continue;
+      robot_tangential_speed_=( (vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
+      if (measured_velocities_)
+        human_tangential_speed_=( (human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
+      else
+        human_tangential_speed_=-default_human_velocity_;
+      if (distance_>min_distance_)
+      {
+        double solution1,solution2;
+        if (ssm_safe_velocity_limits(robot_tangential_speed_,
+                                 human_tangential_speed_,
+                                 max_cart_acc_,
+                                 t_r_,
+                                 distance_,
+                                 min_distance_,
+                                 solution1,
+                                 solution2))
+        {
+          if (robot_tangential_speed_>=0.0)
+          {
+            // vr > solution2  AND vr < solution1
+            vmax_=std::max(0.0,solution1);
+          }
+          else
+          {
+            // vr<solution1 OR vr>solution2
+            vmax_=std::min(0.0,solution2);
+          }
+        }
+        else
+        {
+          vmax_=0.0;
+        }
+      }
+
+      if (robot_tangential_speed_==0.0)
+        s_ref_lc_=1.0;
+      else
+        s_ref_lc_=vmax_/robot_tangential_speed_;  // no division by 0
+
+
+      if (distance_<dist_from_closest_)
+        dist_from_closest_=distance_;
+      if (s_ref_lc_<s_ref_)
+        s_ref_=s_ref_lc_;
+    }
+  }
+  return s_ref_;
+}
+
+double DeterministicSSM::getDistanceFromClosestPoint()
+{
+  return dist_from_closest_;
+}
+
+void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic> &human_points_in_b,
+                                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
+                                     const Eigen::VectorXd &occupancy)
+{
+  assert(human_points_in_b.cols()==occupancy.rows());
+  DeterministicSSM::setPointCloud(human_points_in_b,human_velocities_in_b);
+  occupancy_=occupancy;
+}
+
+double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
+{
+  if (human_points_in_b_.cols()==0)
+    return 1.0;
+  scaling_.clear();
+  Tbl_=chain_->getTransformations(q);
+  vl_in_b_=chain_->getTwist(q,dq);
+
+  for (Eigen::Index ic=0;ic<human_points_in_b_.cols();ic++)
+  {
+    if (occupancy_(ic)<=occupancy_min_)
+      continue;
+    double s_ref_c=1;
+    dist_from_closest_=std::numeric_limits<double>::infinity();
+    for (size_t il=0;il<Tbl_.size();il++)
+    {
+      //consider only links inside the poi_names_ list
+      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+        continue;
+
+      d_lc_in_b_=human_points_in_b_.col(ic)-Tbl_.at(il).translation();
+      distance_=d_lc_in_b_.norm();
+      if (distance_<dist_from_closest_)
+        dist_from_closest_=distance_;
+      robot_tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)-human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
+      human_tangential_speed_=( (human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
+      if (distance_>min_distance_)
+      {
+        double solution1,solution2;
+        if (ssm_safe_velocity_limits(robot_tangential_speed_,
+                                 human_tangential_speed_,
+                                 max_cart_acc_,
+                                 t_r_,
+                                 distance_,
+                                 min_distance_,
+                                 solution1,
+                                 solution2))
+        {
+          if (robot_tangential_speed_>=0.0)
+          {
+            // vr > solution2  AND vr < solution1
+            vmax_=std::max(0.0,solution1);
+          }
+          else
+          {
+            // vr<solution1 OR vr>solution2
+            vmax_=std::min(0.0,solution2);
+          }
+        }
+        else
+        {
+          vmax_=0.0;
+        }
+      }
+
+      if (robot_tangential_speed_==0.0)
+        s_ref_lc_=1.0;
+      else
+        s_ref_lc_=vmax_/robot_tangential_speed_;  // no division by 0
+
+      if (distance_<dist_from_closest_)
+        dist_from_closest_=distance_;
+      if (s_ref_lc_<s_ref_c)
+        s_ref_c=s_ref_lc_;
+    }
+    scaling_.insert(std::pair<double,double>(s_ref_c,occupancy_(ic)));
+  }
+
+  s_ref_=0.0;
+  double previous_probability=1;
+  for (const std::pair<double,double>& p: scaling_)
+  {
+    // p.first  = scaling
+    // p.second = occupancy probability
+    s_ref_+=p.first*p.second*previous_probability;
+    previous_probability*=(1-p.second);
+  }
+  s_ref_+=previous_probability;
+  return s_ref_;
+}
+
 
 }  // end ssm15066

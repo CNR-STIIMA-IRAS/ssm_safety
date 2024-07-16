@@ -1,8 +1,19 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16.0)
 project(velocity_scaling_iso15066)
 
 
 find_package(rdyn_core REQUIRED)
+
+
+option(ENABLE_TESTING "ENABLE TESTING" ON)
+
+
+if (ENABLE_TESTING)
+  find_package(GTest REQUIRED)
+  include(GoogleTest)
+  include(CTest)
+endif()
+
 
 add_library(velocity_scaling SHARED
   src/${PROJECT_NAME}/ssm15066.cpp
@@ -25,6 +36,27 @@ target_include_directories(velocity_scaling
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
   )
+add_library(velocity_scaling::velocity_scaling ALIAS velocity_scaling)
+
+# #############################################################################
+# Testing  ##
+# #############################################################################
+if(ENABLE_TESTING)
+
+  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
+  target_link_libraries(test_cnr_param
+    PUBLIC
+    velocity_scaling::velocity_scaling
+    GTest::gtest_main
+  )
+  target_compile_definitions(test_cnr_param PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
+  target_compile_options(test_cnr_param PUBLIC $<$<CONFIG:Release>:-Ofast >)
+  gtest_discover_tests(test_cnr_param)  # bug related to linking...
+  add_test(NAME test_cnr_param
+    COMMAND test_cnr_param)
+
+
+endif()
 
 
 
@@ -32,17 +64,16 @@ install(DIRECTORY include/${PROJECT_NAME}
   DESTINATION include)
 install(
   TARGETS velocity_scaling #node_connection_test kdtree_test
-  EXPORT graph_coreTargets
+  EXPORT safety_scalingTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-set(EXPORT_CONFIGDIR "share/${PROJECT_NAME}/cmake")
 
 install(EXPORT safety_scalingTargets
-  DESTINATION ${EXPORT_CONFIGDIR}
+  DESTINATION "share/${PROJECT_NAME}/cmake"
   NAMESPACE safety_scaling::
-  FILE graph_coreTargets.cmake
+  FILE safety_scalingTargets.cmake
 )
 
 include(CMakePackageConfigHelpers)
@@ -51,9 +82,9 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/safety_scalingConfi
   COMPATIBILITY AnyNewerVersion)
 
 install(FILES
-  ${CMAKE_SOURCE_DIR}/cmake_config/config.cmake
+  ${CMAKE_SOURCE_DIR}/cmake_config/velocity_scaling_iso15066Config.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/safety_scalingConfigVersion.cmake
-  DESTINATION ${EXPORT_CONFIGDIR})
+  DESTINATION "share/${PROJECT_NAME}/cmake")
 
 # make uninstall
 add_custom_target("uninstall" COMMENT "Uninstall installed files")
@@ -65,49 +96,3 @@ add_custom_command(
             install_manifest.txt to be uninstalled!
 )
 
-
-
-#add_compile_options(-std=c++11 -funroll-loops -Wall -O3 -Wall -mavx -mfma -ffast-math)
-#set(CMAKE_BUILD_TYPE Release)
-
-#find_package(catkin REQUIRED COMPONENTS
-#  roscpp
-#  rosdyn_core
-#  subscription_notifier
-#  geometry_msgs
-#  sensor_msgs
-#  tf
-#  tf_conversions
-#  moveit_ros_planning_interface
-#  name_sorting
-#)
-#catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES #velocity_scaling_iso15066
-#  CATKIN_DEPENDS roscpp rosdyn_core subscription_notifier geometry_msgs sensor_msgs tf tf_conversions moveit_ros_planning_interface name_sorting
-#)
-#include_directories(
-#  include
-#  ${catkin_INCLUDE_DIRS}
-#)
-
-
-#add_executable(${PROJECT_NAME}_node src/node.cpp
-#  )
-#add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(${PROJECT_NAME}_node
-#  ${catkin_LIBRARIES}
-#)
-#add_executable(test_node src/test.cpp )
-#add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(test_node
-#  ${catkin_LIBRARIES}
-#)
-
-#add_executable(unscaled_joint_target_pub
-#  src/unscaled_joint_target_pub.cpp
-#  src/${PROJECT_NAME}/microinterpolator.cpp)
-#add_dependencies(unscaled_joint_target_pub ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(unscaled_joint_target_pub
-#  ${catkin_LIBRARIES}
-#)

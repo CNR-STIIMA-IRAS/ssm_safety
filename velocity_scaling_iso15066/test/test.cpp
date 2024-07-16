@@ -28,36 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include <ros/ros.h>
-#include <rosdyn_core/primitives.h>
+#include <rdyn_core/primitives.h>
 #include <velocity_scaling_iso15066/ssm15066.h>
 #include <random>
 
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "ssm_iso15066");
-  ros::NodeHandle nh;
+  std::string file_path = std::string(TEST_DIR) + "/logger_param.yaml";
+  std::cout << "file_path = " << file_path << std::endl;
 
-  urdf::Model model;
-  model.initParam("robot_description");
 
   Eigen::Vector3d grav;
   grav << 0, 0, -9.806;
 
   // Loading chain
-  std::string base_frame;
-  if (!nh.getParam("base_frame",base_frame))
-  {
-    ROS_ERROR("%s/base_link not defined",nh.getNamespace().c_str());
-    return false;
-  }
-  std::string tool_frame;
-  if (!nh.getParam("tool_frame",tool_frame))
-  {
-    ROS_ERROR("tool_link not defined");
-    return false;
-  }
+  std::string base_frame="base_link";
+  std::string tool_frame="tool_flange";
 
 
   double C=0.01; // min distance
@@ -65,7 +52,7 @@ int main(int argc, char **argv)
   double t_r=0.1;  // reaction time;
 
 
-  rosdyn::ChainPtr chain = rosdyn::createChain(model,base_frame,tool_frame,grav);
+  rdyn::ChainPtr chain = rdyn::createChainFromFile(urdf_path,base_frame,tool_frame,grav);
   std::vector<std::string> link_names = chain->getLinksName();
 
   std::vector<std::string> poi_names;

@@ -35,16 +35,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ssm15066 {
 
+
+bool ssm_safe_velocity_limits(const double& vr,
+                      const double& vh,
+                      const double& a,
+                      const double& Tr,
+                      const double &D,
+                      const double& C,
+                      double& solution1,
+                      double& solution2);
+
+
 class DeterministicSSM
 {
 protected:
-  rosdyn::ChainPtr chain_;
+  rdyn::ChainPtr chain_;
 
   Eigen::VectorXd inv_velocity_limits_;
 
   std::vector<std::string> links_names_;
   std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
+  bool configured_=false;
+  bool measured_velocities_=false;
   double self_distance_=0.2;
   double min_distance_=0.3  ; // min distance
   double max_cart_acc_=0.1;  // m/s^2
@@ -55,21 +68,25 @@ protected:
   double distance_;
   double s_ref_lc_;
   double s_ref_;
-  double tangential_speed_;
+  double robot_tangential_speed_;
+  double human_tangential_speed_;
   double vmax_;
-  double vh_;
+  double default_human_velocity_;
   double dist_from_closest_;
 
   Eigen::Vector3d d_lc_in_b_;
 
-  Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b_;
+  Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
+  Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
 
   std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
   std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  DeterministicSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh = ros::NodeHandle("~"));
-  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& pc_in_b){pc_in_b_=pc_in_b;}
+  DeterministicSSM(const rdyn::ChainPtr& chain);
+  bool setParam();
+  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
+                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b);
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq);
   double getDistanceFromClosestPoint();
@@ -86,168 +103,20 @@ class ProbabilisticSSM: public DeterministicSSM
   std::map<double,double> scaling_;
   double occupancy_min_=0.0;
 public:
-  ProbabilisticSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh=ros::NodeHandle("~")): DeterministicSSM(chain,nh){}
-  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& pc_in_b1,
+  ProbabilisticSSM(const rdyn::ChainPtr& chain): DeterministicSSM(chain){}
+  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
+                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
                      const Eigen::VectorXd& occupancy);
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq);
-  double getDistanceFromClosestPoint();
 
 };
 
 
-typedef shared_ptr_namespace::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
-typedef shared_ptr_namespace::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
+typedef std::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
+typedef std::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
 
-inline DeterministicSSM::DeterministicSSM(const rosdyn::ChainPtr& chain, const ros::NodeHandle nh)
-{
-  chain_=chain;
-  Eigen::VectorXd velocity_limits=chain_->getDQMax();
-  inv_velocity_limits_=velocity_limits.cwiseInverse();
-  links_names_ = chain_->getLinksName();
 
-  vh_ = nh.param("human_velocity",0.0);
-  min_distance_=nh.param("minimum_distance",0.3);
-  self_distance_=nh.param("self_distance",0.0);
-  max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
-  t_r_=nh.param("reaction_time",0.15);
-
-  if(not nh.getParam("test_links",poi_names_))
-    poi_names_ = links_names_;
-
-  ROS_INFO("[%s]: Minimum distance               =  %f",nh.getNamespace().c_str(),min_distance_);
-  ROS_INFO("[%s]: Maximum Cartesian acceleration =  %f",nh.getNamespace().c_str(),max_cart_acc_);
-  ROS_INFO("[%s]: reaction time                  =  %f",nh.getNamespace().c_str(),t_r_);
-  ROS_INFO("[%s]: test links:    ",nh.getNamespace().c_str());
-  for(const std::string& poi:poi_names_)
-    ROS_INFO_STREAM(poi);
-
-  dist_dec_ = max_cart_acc_*t_r_;
-  term2_=dist_dec_+vh_;
-  term1_=std::pow(vh_,2)+std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
-}
-
-inline double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
-                                        const Eigen::VectorXd& dq)
-{
-  if (pc_in_b_.cols()==0)
-    return 1.0;
-
-  Tbl_=chain_->getTransformations(q);
-
-  vl_in_b_=chain_->getTwist(q,dq);
-
-  s_ref_=1.0;
-  dist_from_closest_=std::numeric_limits<double>::infinity();
-  for (Eigen::Index ic=0;ic<pc_in_b_.cols();ic++)
-  {
-    for (size_t il=0;il<Tbl_.size();il++)
-    {
-      //consider only links inside the poi_names_ list
-      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
-        continue;
-
-      d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
-      distance_=d_lc_in_b_.norm();
-      if (distance_<self_distance_)
-        continue;
-      tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
-      if (tangential_speed_<=0)  // robot is going away
-      {
-        s_ref_lc_=1.0;
-      }
-      else if (distance_>min_distance_)
-      {
-        vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
-        s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
-      }
-      else  //distance<=min_distance
-      {
-        return 0.0;
-      }
-      if (distance_<dist_from_closest_)
-      	dist_from_closest_=distance_;
-      if (s_ref_lc_<s_ref_)
-        s_ref_=s_ref_lc_;
-    }
-  }
-  return s_ref_;
-}
-
-inline double DeterministicSSM::getDistanceFromClosestPoint()
-{
-  return dist_from_closest_;
-}
-
-inline void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic> &pc_in_b1, const Eigen::VectorXd &occupancy)
-{
-  assert(pc_in_b1.cols()==occupancy.rows());
-  pc_in_b_=pc_in_b1;
-  occupancy_=occupancy;
-}
-
-inline double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
-{
-  if (pc_in_b_.cols()==0)
-    return 1.0;
-  scaling_.clear();
-  Tbl_=chain_->getTransformations(q);
-  vl_in_b_=chain_->getTwist(q,dq);
-
-  for (size_t ic=0;ic<pc_in_b_.cols();ic++)
-  {
-    if (occupancy_(ic)<=occupancy_min_)
-      continue;
-    double s_ref_c=1;
-    dist_from_closest_=std::numeric_limits<double>::infinity();
-    for (size_t il=0;il<Tbl_.size();il++)
-    {
-      //consider only links inside the poi_names_ list
-      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
-        continue;
-
-      d_lc_in_b_=pc_in_b_.col(ic)-Tbl_.at(il).translation();
-      distance_=d_lc_in_b_.norm();
-      if (distance_<dist_from_closest_)
-      	dist_from_closest_=distance_;
-      tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
-      if (tangential_speed_<=0)  // robot is going away
-      {
-        s_ref_lc_=1.0;
-      }
-      else if (distance_>min_distance_)
-      {
-          vmax_=std::sqrt(term1_+2.0*max_cart_acc_*distance_)-term2_;
-          s_ref_lc_=vmax_/tangential_speed_;  // no division by 0
-      }
-      else  //distance<=min_distance
-      {
-        s_ref_c=0;
-        break;
-      }
-      if (s_ref_lc_<s_ref_c)
-        s_ref_c=s_ref_lc_;
-    }
-    scaling_.insert(std::pair<double,double>(s_ref_c,occupancy_(ic)));
-  }
-
-  s_ref_=0.0;
-  double previous_probability=1;
-  for (const std::pair<double,double>& p: scaling_)
-  {
-    // p.first  = scaling
-    // p.second = occupancy probability
-    s_ref_+=p.first*p.second*previous_probability;
-    previous_probability*=(1-p.second);
-  }
-  s_ref_+=previous_probability;
-  return s_ref_;
-}
-
-inline double ProbabilisticSSM::getDistanceFromClosestPoint()
-{
-  return dist_from_closest_;
-}
 
 
 }  // end ssm15066
