@@ -61,7 +61,7 @@ namespace safety
     Circle(const double& radius, const double& override):
       Shape(override), radius_(radius)
     {
-      ROS_DEBUG("loading circular area with maximum override=%f, with radius %f", override_, radius_);
+      ROS_FATAL("loading circular area with maximum override=%f, with radius %f", override_, radius_);
       if (radius_<=0)
       {
         ROS_FATAL("radius must be positive");
@@ -327,8 +327,6 @@ namespace safety
 
         }
       }
-      ROS_ERROR_THROTTLE(1.0,"pos= %f %f", p[0], p[1]);
-      ROS_ERROR_THROTTLE(1.0,"ovr =%f", override);
     }
 
     virtual void callback(const geometry_msgs::PoseArrayConstPtr& msg)

@@ -58,22 +58,20 @@ namespace safety
       T_base_camera.setIdentity();
       tf::StampedTransform tf_base_camera;
       tf::StampedTransform tf_base_target;
+      tf_base_target.setIdentity();
 
 
       if (target_frame_.compare(base_frame_))
       {
-        if (! listener_.waitForTransform(base_frame_.c_str(),target_frame_.c_str(),msg->header.stamp,ros::Duration(0.01)))
+        if (! listener_.waitForTransform(base_frame_.c_str(),target_frame_.c_str(),ros::Time::now(),ros::Duration(0.1)))
         {
           ROS_ERROR_THROTTLE(1,"Could not find a tf from %s to %s. No TF available",base_frame_.c_str(),target_frame_.c_str());
+          return;
         }
         else
         {
           listener_.lookupTransform(base_frame_,target_frame_.c_str(),msg->header.stamp,tf_base_target);
         }
-      }
-      else
-      {
-        tf_base_target.setIdentity();
       }
 
       if (msg->header.frame_id.compare(base_frame_))
@@ -82,6 +80,7 @@ namespace safety
         if (! listener_.waitForTransform(base_frame_.c_str(),msg->header.frame_id,msg->header.stamp,ros::Duration(0.01)))
         {
           ROS_ERROR_THROTTLE(1,"Poses topic has wrong frame, %s instead of %s. No TF available",msg->header.frame_id.c_str(),base_frame_.c_str());
+          return;
         }
         else
         {
@@ -105,17 +104,19 @@ namespace safety
       }
 
       double override=100.0;
+
       for (size_t idx=0; idx<pc_in_b.cols();idx++)
-      {
+      {      
+        //ROS_ERROR_THROTTLE(1.0,"pos human = %f %f", pc_in_b(0,idx),pc_in_b(1,idx));
+        //ROS_ERROR_THROTTLE(1.0,"pos target = %f %f", tf_base_target.getOrigin()[0], tf_base_target.getOrigin()[1]);
+
         std::vector<double> p(2);
         p.at(0)=pc_in_b(0,idx) - tf_base_target.getOrigin()[0];
         p.at(1)=pc_in_b(1,idx) - tf_base_target.getOrigin()[1];
         checkArea(p,override);
       }
       target_override_=override;
-
     }
-
 
   };
 }
