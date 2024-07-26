@@ -25,6 +25,10 @@ The module publishes:
 
 - a message of the type std_msgs::Int64 containing the safety override 0-100 (the topics are two, with the same content, to have a redundant communication channel) 
 
+## Requirements
+
+* rdyn: https://github.com/CNR-STIIMA-IRAS/rosdyn.git (version: modern_cmake)
+
 ## References
 
 The concept behind the implementation of package velocity_scaling_iso15066 was described in Sec. III-F of the following [paper](https://arxiv.org/pdf/2210.11655.pdf ):
@@ -40,3 +44,4 @@ The concept behind the implementation of package velocity_scaling_iso15066 was d
   publisher={IEEE}
 }
 ```
+

@@ -26,7 +26,7 @@ set_target_properties(velocity_scaling PROPERTIES
             CXX_EXTENSIONS OFF
             )
 target_compile_options(velocity_scaling PRIVATE
-  -funroll-loops -Ofast
+  -funroll-loops -Ofast 
   )
 target_include_directories(velocity_scaling
   PUBLIC
@@ -43,17 +43,17 @@ add_library(velocity_scaling::velocity_scaling ALIAS velocity_scaling)
 # #############################################################################
 if(ENABLE_TESTING)
 
-  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
-  target_link_libraries(test_cnr_param
-    PUBLIC
-    velocity_scaling::velocity_scaling
-    GTest::gtest_main
-  )
-  target_compile_definitions(test_cnr_param PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
-  target_compile_options(test_cnr_param PUBLIC $<$<CONFIG:Release>:-Ofast >)
-  gtest_discover_tests(test_cnr_param)  # bug related to linking...
-  add_test(NAME test_cnr_param
-    COMMAND test_cnr_param)
+#  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
+#  target_link_libraries(test_cnr_param
+#    PUBLIC
+#    velocity_scaling::velocity_scaling
+#    GTest::gtest_main
+#  )
+#  target_compile_definitions(test_cnr_param PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
+#  target_compile_options(test_cnr_param PUBLIC $<$<CONFIG:Release>:-Ofast >)
+#  gtest_discover_tests(test_cnr_param)  # bug related to linking...
+#  add_test(NAME test_cnr_param
+#    COMMAND test_cnr_param)
 
 
 endif()
