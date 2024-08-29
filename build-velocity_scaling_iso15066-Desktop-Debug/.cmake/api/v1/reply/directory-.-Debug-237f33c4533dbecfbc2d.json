@@ -1,0 +1,102 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 63,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 65,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 73,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 84,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"include/velocity_scaling_iso15066"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libvelocity_scaling.so"
+			],
+			"targetId" : "velocity_scaling::@6890427a1f51a3e7e1df",
+			"targetIndex" : 29,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "share/velocity_scaling_iso15066/cmake",
+			"exportName" : "safety_scalingTargets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "velocity_scaling::@6890427a1f51a3e7e1df",
+					"index" : 29
+				}
+			],
+			"paths" : 
+			[
+				"CMakeFiles/Export/share/velocity_scaling_iso15066/cmake/safety_scalingTargets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "share/velocity_scaling_iso15066/cmake",
+			"paths" : 
+			[
+				"cmake_config/velocity_scaling_iso15066Config.cmake",
+				"/home/galileo/projects/merlin2_ws/src/ssm_safety/build-velocity_scaling_iso15066-Desktop-Debug/safety_scalingConfigVersion.cmake"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}

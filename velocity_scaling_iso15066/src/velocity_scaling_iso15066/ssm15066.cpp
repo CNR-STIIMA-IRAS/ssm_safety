@@ -186,7 +186,7 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
       distance_=d_lc_in_b_.norm();
       if (distance_<self_distance_)
         continue;
-      robot_tangential_speed_=( (vl_in_b_.at(il).block(0,0,3,1)).dot(d_lc_in_b_))/distance_;
+      robot_tangential_speed_=( (vl_in_b_.at(il).head(3)).dot(d_lc_in_b_))/distance_;
       if (measured_velocities_)
         human_tangential_speed_=( (human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
       else
@@ -273,7 +273,7 @@ double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::V
       distance_=d_lc_in_b_.norm();
       if (distance_<dist_from_closest_)
         dist_from_closest_=distance_;
-      robot_tangential_speed_=((vl_in_b_.at(il).block(0,0,3,1)-human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
+      robot_tangential_speed_=((vl_in_b_.at(il).head(3)-human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
       human_tangential_speed_=( (human_velocities_in_b_.col(ic)).dot(d_lc_in_b_))/distance_;
       if (distance_>min_distance_)
       {

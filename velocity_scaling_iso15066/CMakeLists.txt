@@ -42,7 +42,7 @@ add_library(velocity_scaling::velocity_scaling ALIAS velocity_scaling)
 # #############################################################################
 # Testing  ##
 # #############################################################################
-#if(ENABLE_TESTING)
+if(ENABLE_TESTING)
 
 #  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
 #  target_link_libraries(test_cnr_param
@@ -57,7 +57,7 @@ add_library(velocity_scaling::velocity_scaling ALIAS velocity_scaling)
 #    COMMAND test_cnr_param)
 
 
-#endif()
+endif()
 
 
 
@@ -96,4 +96,3 @@ add_custom_command(
     COMMAND xargs rm -vf < install_manifest.txt || echo Nothing in
             install_manifest.txt to be uninstalled!
 )
-
