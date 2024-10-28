@@ -50,11 +50,11 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>rosdyn_core</build_depend>
+  <build_depend>rdyn_core</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rosdyn_core</build_export_depend>
   <exec_depend>roscpp</exec_depend>
-  <exec_depend>rosdyn_core</exec_depend>
+  <exec_depend>rdyn_core</exec_depend>
   <depend>subscription_notifier</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
