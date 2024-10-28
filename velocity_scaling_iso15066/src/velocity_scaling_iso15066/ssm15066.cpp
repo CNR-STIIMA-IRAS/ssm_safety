@@ -134,10 +134,16 @@ bool DeterministicSSM::setParam()
   dist_dec_ = max_cart_acc_*t_r_;
   term2_=dist_dec_;
   term1_=std::pow(dist_dec_,2)-2*max_cart_acc_*min_distance_;
+
   if (measured_velocities_)
   {
     term1_+=std::pow(default_human_velocity_,2);
     term2_+=default_human_velocity_;
+  }
+  else
+  {
+    //CHECK ??
+    human_velocities_in_b_.setConstant(default_human_velocity_);
   }
 
 //  configured_=true;

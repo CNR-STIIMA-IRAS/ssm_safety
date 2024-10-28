@@ -71,7 +71,7 @@ protected:
   double robot_tangential_speed_;
   double human_tangential_speed_;
   double vmax_;
-  double default_human_velocity_;
+  double default_human_velocity_{0.0};
   double dist_from_closest_;
 
   Eigen::Vector3d d_lc_in_b_;

@@ -42,3 +42,5 @@ Testing/
 
 compile_commands.json
 
+*build-*
+
