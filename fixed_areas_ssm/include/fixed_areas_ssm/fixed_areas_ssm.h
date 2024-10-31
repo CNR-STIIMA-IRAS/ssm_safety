@@ -184,7 +184,7 @@ namespace safety
     std::string base_frame_;
     tf::TransformListener listener_;
     Eigen::Matrix<double,3,Eigen::Dynamic> pc_in_b;
-
+    bool has_new_poses_{false};
 
     std::map<std::string,ShapePtr> areas_;
     double override_=100;
@@ -329,8 +329,21 @@ namespace safety
       }
     }
 
+    virtual bool hasNewPoses()
+    {
+      return has_new_poses_;
+    }
+
     virtual void callback(const geometry_msgs::PoseArrayConstPtr& msg)
     {
+      if (msg->poses.size()==0)
+      {
+        has_new_poses_=false;
+        return;
+      }
+
+      has_new_poses_ = true;
+
       Eigen::Affine3d T_base_camera;
       T_base_camera.setIdentity();
       tf::StampedTransform tf_base_camera;

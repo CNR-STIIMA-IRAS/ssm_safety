@@ -38,11 +38,14 @@ int main(int argc, char** argv)
   while (ros::ok())
   {
     ros::spinOnce();
-    msg.data=ssm.getOverride();
-    msg_float.data = (float) msg.data;
+    if (ssm.hasNewPoses())
+    {
+      msg.data=ssm.getOverride();
+      msg_float.data = (float) msg.data;
 
-    ovr_pub.publish(msg);
-    ovr_float_pb.publish(msg_float);
+      ovr_pub.publish(msg);
+      ovr_float_pb.publish(msg_float);
+    }
 
     lp.sleep();
 
