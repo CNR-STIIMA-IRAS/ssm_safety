@@ -54,6 +54,14 @@ namespace safety
 
     void callback(const geometry_msgs::PoseArrayConstPtr& msg)
     {
+      if (msg->poses.size()==0)
+      {
+        has_new_poses_=false;
+        return;
+      }
+
+      has_new_poses_ = true;
+
       Eigen::Affine3d T_base_camera;
       T_base_camera.setIdentity();
       tf::StampedTransform tf_base_camera;
