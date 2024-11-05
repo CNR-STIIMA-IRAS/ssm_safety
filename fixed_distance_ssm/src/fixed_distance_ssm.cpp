@@ -11,22 +11,24 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
 
   ros::Rate lp(30);
-  std_msgs::Int64 msg;
-  std_msgs::Float32 msg_float;
+  std_msgs::Int64 ovr_msg;
+  std_msgs::Float32 ovr_msg_float;
+  std_msgs::Float32 min_dist_msg;
 
   ros::Publisher ovr_pub=nh.advertise<std_msgs::Int64>("safe_ovr_1",1);
   ros::Publisher ovr_float_pb=nh.advertise<std_msgs::Float32>("/safe_ovr_1_float",1);
+  ros::Publisher min_dist_pb=nh.advertise<std_msgs::Float32>("/min_distance_from_poses",1);
 
   safety::FixedDistanceSSM ssm(nh);
   if (!ssm.loadAreas())
   {
-    msg.data=0;
-    msg_float.data=0.0;
+    ovr_msg.data=0;
+    ovr_msg_float.data=0.0;
     while (ros::ok())
     {
       ROS_ERROR_THROTTLE(10,"fixed areas speed and separation monitoring (SSM) is not well configured ");
-      ovr_pub.publish(msg);
-      ovr_float_pb.publish(msg_float);
+      ovr_pub.publish(ovr_msg);
+      ovr_float_pb.publish(ovr_msg_float);
       lp.sleep();
     }
   }
@@ -40,11 +42,13 @@ int main(int argc, char** argv)
     ros::spinOnce();
     if (ssm.hasNewPoses())
     {
-      msg.data=ssm.getOverride();
-      msg_float.data = (float) msg.data;
+      ovr_msg.data=ssm.getOverride();
+      ovr_msg_float.data = (float) ovr_msg.data;
+      min_dist_msg.data = (float) ssm.getMinDistanceFromPoses();
 
-      ovr_pub.publish(msg);
-      ovr_float_pb.publish(msg_float);
+      ovr_pub.publish(ovr_msg);
+      ovr_float_pb.publish(ovr_msg_float);
+      min_dist_pb.publish(min_dist_msg);
     }
 
     lp.sleep();

@@ -41,6 +41,7 @@ namespace safety
   {
   protected:
     std::string target_frame_;
+    double min_distance_squared_{0.0};
 
 
   public:
@@ -113,6 +114,7 @@ namespace safety
 
       double override=100.0;
 
+      min_distance_squared_=std::numeric_limits<double>::infinity();
       for (size_t idx=0; idx<pc_in_b.cols();idx++)
       {      
         //ROS_ERROR_THROTTLE(1.0,"pos human = %f %f", pc_in_b(0,idx),pc_in_b(1,idx));
@@ -121,9 +123,20 @@ namespace safety
         std::vector<double> p(2);
         p.at(0)=pc_in_b(0,idx) - tf_base_target.getOrigin()[0];
         p.at(1)=pc_in_b(1,idx) - tf_base_target.getOrigin()[1];
+        double distance_human_to_link_squared = std::pow(p.at(0),2.0) + std::pow(p.at(1),2.0);
+        if (distance_human_to_link_squared < min_distance_squared_)
+        {
+          min_distance_squared_=distance_human_to_link_squared;
+        }
+
         checkArea(p,override);
       }
       target_override_=override;
+    }
+
+    double getMinDistanceFromPoses()
+    {
+      return std::sqrt(min_distance_squared_);
     }
 
   };
