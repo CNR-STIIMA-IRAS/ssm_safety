@@ -56,9 +56,9 @@ protected:
   std::vector<std::string> links_names_;
   std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
-  bool configured_=false;
+  bool is_configured_=false;
   bool measured_velocities_=false;
-  double self_distance_=0.2;
+  double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
   double min_distance_=0.3  ; // min distance
   double max_cart_acc_=0.1;  // m/s^2
   double t_r_=0.15;  // reaction time;
@@ -83,8 +83,27 @@ protected:
   std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   DeterministicSSM(const rdyn::ChainPtr& chain);
-  bool setParam();
+
+  void init();
+
+  void setMaxCartesianAcceleration(const double& acc);
+
+  void setReactionTime(const double& t_r);
+
+  void setDefaultHumanSpeed(const double& vel);
+
+  void setMinProtectiveDistance(const double& dist);
+
+  void setFilteringSelfDistance(const double& dist);
+
+  void useMeasuredHumanVelocity(const bool& flag);
+
+  void setCheckedRobotLinks(const std::vector<std::string>& links);
+
+  bool isConfigured();
+
   void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
                      const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b);
   double computeScaling(const Eigen::VectorXd& q,

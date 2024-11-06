@@ -5,6 +5,7 @@ project(velocity_scaling_iso15066)
 find_package(rdyn_core REQUIRED)
 
 
+
 option(ENABLE_TESTING "ENABLE TESTING" ON)
 
 
@@ -21,7 +22,7 @@ add_library(velocity_scaling_iso15066 SHARED
 
 target_link_libraries(velocity_scaling_iso15066 PUBLIC
   rdyn_core::rdyn_core)
-<<<<<<< HEAD
+
 set_target_properties(velocity_scaling_iso15066 PROPERTIES
             CXX_STANDARD 17
             CXX_EXTENSIONS OFF
@@ -29,7 +30,7 @@ set_target_properties(velocity_scaling_iso15066 PROPERTIES
 target_compile_options(velocity_scaling_iso15066 PRIVATE
   -funroll-loops -Ofast 
   )
-  
+
 target_include_directories(velocity_scaling_iso15066
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include> #if BUILD_INTERFACE, add ${CMAKE_SOURCE_DIR}/include (headers taken by source directory)

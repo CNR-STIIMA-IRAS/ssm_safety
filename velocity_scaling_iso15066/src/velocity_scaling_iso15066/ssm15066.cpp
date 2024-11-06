@@ -78,7 +78,7 @@ bool ssm_safe_velocity_limits(const double& vr,
     double sqrt_discriminant=std::sqrt(2.0*(D-C)*a + std::pow(Tr*a,2.0) + std::pow(vh,2.0));
     solution1 = -Tr*a + vh + sqrt_discriminant;
     solution2 = -Tr*a + vh - sqrt_discriminant;
-    // vr > solution1  AND vr < solution2
+    // solution2 < vr < solution1 => always choose solution1
     return true;
   }
   else // robot velocity is negative
@@ -89,13 +89,16 @@ bool ssm_safe_velocity_limits(const double& vr,
       double sqrt_discriminant=std::sqrt(discriminant);
       solution1 = Tr*a + vh + sqrt_discriminant;
       solution2 = Tr*a + vh - sqrt_discriminant;
-      // vr<solution2 OR vr>solution1
+      // vr<solution2 OR vr>solution1 with  solution2 < solution1
+      // if solution1<vr => any velocity > solution1 is good => choose vr
+      // elif solution1>vr AND solution2<vr => any velocity up to solution2 is good => choose solution2
+      // elif solution1>vr AND solution2>vr => any velocity up to solution2 is good => choose solution2
       return true;
     }
-    else  // the distance is high, all the negative robot velocities are good
+    else  // the distance is high, all the negative robot velocities are good => choose current vr
     {
-      solution1=0.0;
-      solution2=0.0;
+      solution1=vr;
+      solution2=vr;
       return true;
     }
   }
@@ -108,28 +111,11 @@ DeterministicSSM::DeterministicSSM(const rdyn::ChainPtr& chain)
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
   links_names_ = chain_->getLinksName();
-
+  poi_names_ = links_names_;
 }
 
-bool DeterministicSSM::setParam()
+void DeterministicSSM::init()
 {
-
-//  default_human_velocities_ = nh.param("human_velocity",0.0);
-//  min_distance_=nh.param("minimum_distance",0.3);
-//  self_distance_=nh.param("self_distance",0.0);
-//  max_cart_acc_=nh.param("maximum_cartesian_acceleration",0.1);
-//  t_r_=nh.param("reaction_time",0.15);
-//  measured_velocities_=nh.param("measured_velocities",false);;
-
-//  if(not nh.getParam("test_links",poi_names_))
-//    poi_names_ = links_names_;
-
-//  ROS_INFO("[%s]: Minimum distance               =  %f",nh.getNamespace().c_str(),min_distance_);
-//  ROS_INFO("[%s]: Maximum Cartesian acceleration =  %f",nh.getNamespace().c_str(),max_cart_acc_);
-//  ROS_INFO("[%s]: reaction time                  =  %f",nh.getNamespace().c_str(),t_r_);
-//  ROS_INFO("[%s]: test links:    ",nh.getNamespace().c_str());
-//  for(const std::string& poi:poi_names_)
-//    ROS_INFO_STREAM(poi);
 
   dist_dec_ = max_cart_acc_*t_r_;
   term2_=dist_dec_;
@@ -146,8 +132,53 @@ bool DeterministicSSM::setParam()
     human_velocities_in_b_.setConstant(default_human_velocity_);
   }
 
-//  configured_=true;
-  return false;
+  is_configured_=true;
+}
+
+void DeterministicSSM::setMaxCartesianAcceleration(const double& acc)
+{
+  max_cart_acc_=acc;
+  is_configured_=false;
+}
+
+void DeterministicSSM::setReactionTime(const double& t_r)
+{
+  t_r_=t_r;
+  is_configured_=false;
+}
+
+void DeterministicSSM::setDefaultHumanSpeed(const double& vel)
+{
+  default_human_velocity_=vel;
+  is_configured_=false;
+}
+
+void DeterministicSSM::setMinProtectiveDistance(const double& dist)
+{
+  min_distance_=dist;
+  is_configured_=false;
+}
+
+void DeterministicSSM::setFilteringSelfDistance(const double& dist)
+{
+  self_distance_=dist;
+  is_configured_=false;
+}
+
+void DeterministicSSM::useMeasuredHumanVelocity(const bool& flag)
+{
+  measured_velocities_=flag;
+  is_configured_=false;
+}
+
+void DeterministicSSM::setCheckedRobotLinks(const std::vector<std::string>& links)
+{
+  poi_names_=links;
+}
+
+bool DeterministicSSM::isConfigured()
+{
+  return is_configured_;
 }
 
 void DeterministicSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
@@ -171,8 +202,16 @@ void DeterministicSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynam
 double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
                                         const Eigen::VectorXd& dq)
 {
+
+  if (!this->isConfigured())
+  {
+   std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
+  }
+
   if (human_points_in_b_.cols()==0)
+  {
     return 1.0;
+  }
 
   Tbl_=chain_->getTransformations(q);
 
@@ -211,13 +250,20 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
         {
           if (robot_tangential_speed_>=0.0)
           {
-            // vr > solution2  AND vr < solution1
+            //  solution2 < vr < solution1
             vmax_=std::max(0.0,solution1);
           }
-          else
+          else //  couldn't we just set vmax_=robot_tangential_speed_ because robot is moving away?
           {
             // vr<solution1 OR vr>solution2
-            vmax_=std::min(0.0,solution2);
+            if (solution1<=robot_tangential_speed_)
+            {
+              vmax_=robot_tangential_speed_;
+            }
+            else
+            {
+              vmax_=std::max(0.0,solution2);
+            }
           }
         }
         else
@@ -234,7 +280,7 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
 
       if (distance_<dist_from_closest_)
         dist_from_closest_=distance_;
-      if (s_ref_lc_<s_ref_)
+      if (s_ref_lc_<s_ref_) // saturate to 1
         s_ref_=s_ref_lc_;
     }
   }
@@ -257,6 +303,11 @@ void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynam
 
 double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
 {
+  if (!this->isConfigured())
+  {
+   std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
+  }
+
   if (human_points_in_b_.cols()==0)
     return 1.0;
   scaling_.clear();
@@ -295,19 +346,30 @@ double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::V
         {
           if (robot_tangential_speed_>=0.0)
           {
-            // vr > solution2  AND vr < solution1
+            //  solution2 < vr < solution1
             vmax_=std::max(0.0,solution1);
           }
           else
           {
             // vr<solution1 OR vr>solution2
-            vmax_=std::min(0.0,solution2);
+            if (solution1<=robot_tangential_speed_)
+            {
+              vmax_=robot_tangential_speed_;
+            }
+            else
+            {
+              vmax_=std::max(0.0,solution2);
+            }
           }
         }
         else
         {
           vmax_=0.0;
         }
+      }
+      else
+      {
+        s_ref_lc_=0.0;
       }
 
       if (robot_tangential_speed_==0.0)
