@@ -30,8 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+
 #include <rdyn_core/primitives.h>
-#include "velocity_scaling_iso15066/ssm_base.h"
 
 namespace ssm15066 {
 
@@ -46,7 +46,7 @@ bool ssm_safe_velocity_limits(const double& vr,
                       double& solution2);
 
 
-class DeterministicSSM : public BaseSSM
+class DeterministicSSM
 {
 protected:
   rdyn::ChainPtr chain_;
@@ -56,6 +56,8 @@ protected:
   std::vector<std::string> links_names_;
   std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
+  bool is_configured_=false;
+  bool measured_velocities_=false;
   double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
   double min_distance_=0.3  ; // min distance
   double max_cart_acc_=0.1;  // m/s^2
@@ -70,8 +72,12 @@ protected:
   double human_tangential_speed_;
   double vmax_;
   double default_human_velocity_{0.0};
+  double dist_from_closest_;
 
   Eigen::Vector3d d_lc_in_b_;
+
+  Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
+  Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
 
   std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
   std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
@@ -80,7 +86,7 @@ public:
 
   DeterministicSSM(const rdyn::ChainPtr& chain);
 
-  void init() override;
+  void init();
 
   void setMaxCartesianAcceleration(const double& acc);
 
@@ -96,8 +102,13 @@ public:
 
   void setCheckedRobotLinks(const std::vector<std::string>& links);
 
+  bool isConfigured();
+
+  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
+                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b);
   double computeScaling(const Eigen::VectorXd& q,
-                                const Eigen::VectorXd& dq) override;
+                        const Eigen::VectorXd& dq);
+  double getDistanceFromClosestPoint();
 
   std::vector<std::string> getPoiNames()
   {
@@ -116,11 +127,15 @@ public:
                      const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
                      const Eigen::VectorXd& occupancy);
   double computeScaling(const Eigen::VectorXd& q,
-                                const Eigen::VectorXd& dq) override;
+                        const Eigen::VectorXd& dq);
 
 };
 
-using DeterministicSSMPtr = std::shared_ptr< DeterministicSSM >;
-using ProbabilisticSSMPtr = std::shared_ptr< ProbabilisticSSM >;
+
+typedef std::shared_ptr< DeterministicSSM   > DeterministicSSMPtr;
+typedef std::shared_ptr< ProbabilisticSSM   > ProbabilisticSSMPtr;
+
+
+
 
 }  // end ssm15066

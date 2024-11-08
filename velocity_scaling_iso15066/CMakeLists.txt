@@ -1,13 +1,9 @@
 cmake_minimum_required(VERSION 3.16.0)
 project(velocity_scaling_iso15066)
 
-
 find_package(rdyn_core REQUIRED)
 
-
-
 option(ENABLE_TESTING "ENABLE TESTING" ON)
-
 
 if (ENABLE_TESTING)
   find_package(GTest REQUIRED)
@@ -15,9 +11,9 @@ if (ENABLE_TESTING)
   include(CTest)
 endif()
 
-
 add_library(velocity_scaling_iso15066 SHARED
   src/${PROJECT_NAME}/ssm15066.cpp
+  src/${PROJECT_NAME}/ssm_base.cpp
   )
 
 target_link_libraries(velocity_scaling_iso15066 PUBLIC
