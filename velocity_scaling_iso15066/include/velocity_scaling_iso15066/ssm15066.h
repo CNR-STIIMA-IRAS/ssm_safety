@@ -1,8 +1,10 @@
 /*
-Copyright (c) 2020, Manuel Beschi 
+Copyright (c) 2024, Manuel Beschi, Marco Faroni
 CARI Joint Research Lab
+Politecnico di Milano
 UNIBS-DIMI manuel.beschi@unibs.it
 CNR-STIIMA manuel.beschi@stiima.cnr.it
+POLIMI marco.faroni@polimi.it
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -32,91 +32,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "velocity_scaling_iso15066/ssm_base.h"
+#include "velocity_scaling_iso15066/ssm_fixed_areas.h"
 #include <map>
 
 namespace ssm15066 {
 
-class Shape
+class FixedDistanceSSM : public FixedAreasSSM
 {
 protected:
-  double override_;
 
-public:
-  Shape(const double& override);
-
-  double getOverride();
-
-  virtual bool checkArea(const std::vector<double>& p)=0;
-
-};
-using ShapePtr = std::shared_ptr<Shape>;
-
-class Circle : public Shape
-{
-protected:
-  double radius_;
-
-public:
-  Circle(const double& radius, const double& override);
-
-  bool checkArea(const std::vector<double>& p);
-
-};
-
-using CirclePtr = std::shared_ptr<Circle>;
-
-class ConvexPolygon : public Shape
-{
-protected:
-  std::vector<std::vector<double>> corners_;
-  std::vector<std::vector<double>> normals_;
-
-  double dot(const std::vector<double>& p, const std::vector<double>& corner, const std::vector<double>& normal);
-
-  bool inPolygon(const std::vector<double>& p);
-
-public:
-  ConvexPolygon(const std::vector<std::vector<double>>& corners,
-                const double& override);
-
-  bool checkArea(const std::vector<double>& p);
-
-};
-
-using ConvexPolygonPtr = std::shared_ptr<ConvexPolygon>;
-
-
-class FixedAreasSSM : public BaseSSM
-{
-protected:
-  std::map<std::string,ShapePtr> areas_;
-  // ros::Time last_time_;
-
-  void checkArea(const std::vector<double>& p, double& speed_ovr);
-
-  void checkAreaFromPointCloud(double& speed_ovr);
+  void checkDistanceFromPointCloud(double& speed_ovr, const std::vector<double>& robot_pos_in_b_xy);
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  FixedAreasSSM();
 
   void init() override;
 
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq) override;
 
-  void addArea(const std::string& name, const std::vector<std::vector<double>>& corners, const double& speed_ovr);
-
-  void addArea(const std::string& name, const double& radius, const double& speed_ovr);
-
-  void printAreas();
-
-
 };
 
-using FixedAreasSSMPtr = std::shared_ptr< FixedAreasSSM >;
+using FixedDistanceSSMPtr = std::shared_ptr< FixedDistanceSSM >;
 
 
 

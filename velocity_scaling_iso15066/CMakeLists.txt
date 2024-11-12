@@ -13,6 +13,8 @@ endif()
 
 add_library(velocity_scaling_iso15066 SHARED
   src/${PROJECT_NAME}/ssm15066.cpp
+  src/${PROJECT_NAME}/ssm_fixed_areas.cpp
+  src/${PROJECT_NAME}/ssm_fixed_distance.cpp
   src/${PROJECT_NAME}/ssm_base.cpp
   )
 

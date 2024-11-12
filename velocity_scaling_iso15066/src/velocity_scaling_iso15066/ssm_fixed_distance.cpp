@@ -5,7 +5,6 @@ UNIBS-DIMI manuel.beschi@unibs.it
 CNR-STIIMA manuel.beschi@stiima.cnr.it
 Politecnico di Milano marco.faroni@polimi.it
 All rights reserved.
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
     * Redistributions of source code must retain the above copyright
@@ -29,55 +28,59 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
 
-#include <string>
-#include <vector>
-#include <cmath>
-#include <cstdint>
-#include <assert.h>
-#include <memory>
-#include <iostream>
-
-# include <Eigen/Geometry>
-# include <Eigen/StdVector>
+#include <velocity_scaling_iso15066/ssm_fixed_distance.h>
 
 namespace ssm15066 {
 
 
-class BaseSSM
+void FixedDistanceSSM::checkDistanceFromPointCloud(double& speed_ovr, const std::vector<double>& robot_pos_in_b_xy)
 {
-protected:
+  speed_ovr = 1.0;
+  dist_from_closest_=std::numeric_limits<double>::infinity();
 
-  bool is_configured_=false;
-  bool measured_velocities_=false;
-  //double s_ref_lc_;
-  //double s_ref_;
-  double dist_from_closest_=-1.0;
-  
-  Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
-  Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
-  Eigen::Vector2d robot_position_in_b_;
+  for (size_t idx=0; idx<human_points_in_b_.cols();idx++)
+  {
+    std::vector<double> p(2);
+    p.at(0)=human_points_in_b_(0,idx) - robot_pos_in_b_xy[0];
+    p.at(1)=human_points_in_b_(1,idx) - robot_pos_in_b_xy[1];
+    double distance_human_to_link_squared = std::pow(p.at(0),2.0) + std::pow(p.at(1),2.0);
 
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    if (distance_human_to_link_squared < dist_from_closest_)
+    {
+      dist_from_closest_=distance_human_to_link_squared;
+    }
+    checkArea(p,speed_ovr);
+  }
+  dist_from_closest_=std::sqrt(dist_from_closest_);
+}
 
-  BaseSSM();
+void FixedDistanceSSM::init()
+{
+  robot_position_in_b_.resize(2);
+  robot_position_in_b_.setZero();
+  is_configured_=true;
+}
 
-  virtual void init();
+double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
+                                     const Eigen::VectorXd& dq)
+{
+  if (!this->isConfigured())
+  {
+   std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
+  }
 
-  bool isConfigured();
+  if (human_points_in_b_.cols()==0)
+  {
+    return 1.0;
+  }
 
-  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
-                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b);
-
-  virtual double computeScaling(const Eigen::VectorXd& q,
-                                const Eigen::VectorXd& dq) = 0;
-
-  virtual double getDistanceFromClosestPoint();
-
-};
-
-using BaseSSMPtr = std::shared_ptr< BaseSSM >;
+  double ovr=1.0;
+  std::vector<double> robot_position(2);
+  robot_position[0] = robot_position_in_b_(0);
+  robot_position[1] = robot_position_in_b_(1);
+  checkDistanceFromPointCloud(ovr, robot_position);
+  return ovr;
+}
 
 }  // end ssm15066
