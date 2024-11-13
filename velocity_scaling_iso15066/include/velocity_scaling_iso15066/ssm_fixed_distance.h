@@ -51,6 +51,8 @@ public:
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq) override;
 
+  void setRobotToolPosition(const Eigen::Vector2d& xy_in_b);
+
 };
 
 using FixedDistanceSSMPtr = std::shared_ptr< FixedDistanceSSM >;

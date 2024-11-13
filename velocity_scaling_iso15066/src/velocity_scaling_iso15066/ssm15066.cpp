@@ -209,6 +209,7 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
 
   if (human_points_in_b_.cols()==0)
   {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
   }
 
@@ -308,7 +309,10 @@ double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::V
   }
 
   if (human_points_in_b_.cols()==0)
+  {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
+  }
 
   scaling_.clear();
   Tbl_=chain_->getTransformations(q);

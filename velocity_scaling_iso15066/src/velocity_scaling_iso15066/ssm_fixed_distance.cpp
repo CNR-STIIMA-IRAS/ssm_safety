@@ -63,7 +63,7 @@ void FixedDistanceSSM::init()
 }
 
 double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
-                                     const Eigen::VectorXd& dq)
+                                        const Eigen::VectorXd& dq)
 {
   if (!this->isConfigured())
   {
@@ -72,6 +72,7 @@ double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
 
   if (human_points_in_b_.cols()==0)
   {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
   }
 
@@ -82,5 +83,11 @@ double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
   checkDistanceFromPointCloud(ovr, robot_position);
   return ovr;
 }
+
+void FixedDistanceSSM::setRobotToolPosition(const Eigen::Vector2d& xy_in_b)
+{
+  robot_position_in_b_ = xy_in_b;
+}
+
 
 }  // end ssm15066

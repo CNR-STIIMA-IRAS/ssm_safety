@@ -204,6 +204,7 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
 
   if (human_points_in_b_.cols()==0)
   {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
   }
 
