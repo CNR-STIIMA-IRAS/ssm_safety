@@ -176,33 +176,32 @@ void DeterministicSSM::setCheckedRobotLinks(const std::vector<std::string>& link
   poi_names_=links;
 }
 
-bool DeterministicSSM::isConfigured()
-{
-  return is_configured_;
-}
+//bool DeterministicSSM::isConfigured()
+//{
+//  return is_configured_;
+//}
 
-void DeterministicSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
-                                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b)
-{
-  human_points_in_b_=human_points_in_b;
-  if (measured_velocities_)
-  {
-    if (human_velocities_in_b.cols()!=human_points_in_b.cols())
-    {
-      throw std::invalid_argument("human points and velocities do not match");
-    }
-    else
-    {
-      human_velocities_in_b_=human_velocities_in_b;
-    }
-  }
-}
+//void DeterministicSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
+//                                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b)
+//{
+//  human_points_in_b_=human_points_in_b;
+//  if (measured_velocities_)
+//  {
+//    if (human_velocities_in_b.cols()!=human_points_in_b.cols())
+//    {
+//      throw std::invalid_argument("human points and velocities do not match");
+//    }
+//    else
+//    {
+//      human_velocities_in_b_=human_velocities_in_b;
+//    }
+//  }
+//}
 
 
 double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
                                         const Eigen::VectorXd& dq)
 {
-
   if (!this->isConfigured())
   {
    std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
@@ -210,6 +209,7 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
 
   if (human_points_in_b_.cols()==0)
   {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
   }
 
@@ -287,10 +287,10 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
   return s_ref_;
 }
 
-double DeterministicSSM::getDistanceFromClosestPoint()
-{
-  return dist_from_closest_;
-}
+//double DeterministicSSM::getDistanceFromClosestPoint()
+//{
+//  return dist_from_closest_;
+//}
 
 void ProbabilisticSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic> &human_points_in_b,
                                      const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
@@ -309,7 +309,11 @@ double ProbabilisticSSM::computeScaling(const Eigen::VectorXd &q, const Eigen::V
   }
 
   if (human_points_in_b_.cols()==0)
+  {
+    dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
+  }
+
   scaling_.clear();
   Tbl_=chain_->getTransformations(q);
   vl_in_b_=chain_->getTwist(q,dq);

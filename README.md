@@ -1,18 +1,22 @@
 # ssm_safety
 
-The package has three modules that provide an optimized speed and separation monitoring package to slow down the robot in case of human-robot proximity.
+The package has three modules that provide an optimized speed and separation monitoring according to ISO TS 15066 to slow down the robot in case of human-robot proximity.
+
 An example of usage with ROS2 is available [here](https://github.com/JRL-CARI-CNR-UNIBS/ssm_safety_ros).
 
 The three modules are:
 
-## [velocity_scaling_iso15066](velocity_scaling_iso15066/README.md)
-The module needs the information on the target trajectory, and the actual robot position. Then, the position is projected on the trajectory, and using the information on the human position with respect to the robot, the scaling override is computed. 
+## Continuous speed adaptation 
+The robot slows down according to the relative human robot position and velocity.
+The speed modulation is continuous, the speed scaling is computed automatically according to the guidelines provided in ISO TS 15066.
 
 ## [fixed_areas_ssm](fixed_areas_ssm/README.md)
 The module needs the position of the human in the cell. The robot slows down if the human enters in predefined zones.
+Safety zones and speed scaling can be configured from parameters.
 
 ## [fixed_distance_ssm](fixed_distance_ssm/README.md)
-The module needs the position of the human in the cell. The robot slows down if the human enters in predefined zones.
+The module needs the position of the human in the cell. The robot slows down if the relative distance between the human and the robot end-effector is below a given threshold.
+Distances and speed scaling can be configured from parameters.
 
 ## Requirements
 
