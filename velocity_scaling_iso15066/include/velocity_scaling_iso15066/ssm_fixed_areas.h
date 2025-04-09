@@ -93,16 +93,29 @@ protected:
   std::map<std::string,ShapePtr> areas_;
   // ros::Time last_time_;
 
-  void checkArea(const std::vector<double>& p, double& speed_ovr);
+  void checkArea(const std::vector<double>& p, double& speed_ovr); // DEPRECATED
 
-  void checkAreaFromPointCloud(double& speed_ovr);
+  void checkAreaFromPointCloud(double& speed_ovr); // DEPRECATED
+
+  void checkArea(const std::vector<double>& p, std::string& occupied_area);
+
+  void checkAreaFromPointCloud(std::string& occupied_area);
+
+
+  bool activate_on_human_{false};
+  bool activate_on_robot_{false};
+  bool activate_on_signal_{false};
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   FixedAreasSSM();
 
+  FixedAreasSSM(const rdyn::ChainPtr& chain);
+
   void init() override;
+
+  void init(bool activate_on_h, bool activate_on_r, bool activate_on_s);
 
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq) override;

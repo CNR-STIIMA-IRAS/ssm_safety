@@ -105,13 +105,11 @@ bool ssm_safe_velocity_limits(const double& vr,
 }
 
 
-DeterministicSSM::DeterministicSSM(const rdyn::ChainPtr& chain)
+DeterministicSSM::DeterministicSSM(const rdyn::ChainPtr& chain):
+  BaseSSM(chain)
 {
-  chain_=chain;
   Eigen::VectorXd velocity_limits=chain_->getDQMax();
   inv_velocity_limits_=velocity_limits.cwiseInverse();
-  links_names_ = chain_->getLinksName();
-  poi_names_ = links_names_;
 }
 
 void DeterministicSSM::init()
@@ -169,11 +167,6 @@ void DeterministicSSM::useMeasuredHumanVelocity(const bool& flag)
 {
   measured_velocities_=flag;
   is_configured_=false;
-}
-
-void DeterministicSSM::setCheckedRobotLinks(const std::vector<std::string>& links)
-{
-  poi_names_=links;
 }
 
 //bool DeterministicSSM::isConfigured()

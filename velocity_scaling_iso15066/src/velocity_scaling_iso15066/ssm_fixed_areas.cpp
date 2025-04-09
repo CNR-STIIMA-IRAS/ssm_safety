@@ -143,6 +143,9 @@ bool ConvexPolygon::checkArea(const std::vector<double>& p)
 
 FixedAreasSSM::FixedAreasSSM(){}
 
+FixedAreasSSM::FixedAreasSSM(const rdyn::ChainPtr& chain):
+  BaseSSM(chain){}
+
 void FixedAreasSSM::addArea(const std::string& name, const std::vector<std::vector<double>>& corners, const double& speed_ovr)
 {
   ShapePtr area=std::make_shared<ConvexPolygon>(corners,speed_ovr);
@@ -155,7 +158,35 @@ void FixedAreasSSM::addArea(const std::string& name, const double& radius, const
   areas_.insert(std::pair<std::string,ShapePtr>(name,area));
 }
 
+void FixedAreasSSM::checkArea(const std::vector<double>& p, std::string& occupied_area)
+{
+  double min_ovr = 1.0;
+  for (const std::pair<std::string,ShapePtr>& area: areas_)
+  {
+    if (area.second->checkArea(p))
+    {
+      if (area.second->getOverride() < min_ovr)
+      {
+        min_ovr = area.second->getOverride();
+        occupied_area = area.first;
+      }
+    }
+  }
+}
 
+void FixedAreasSSM::checkAreaFromPointCloud(std::string& occupied_area)
+{
+  for (size_t idx=0; idx<human_points_in_b_.cols();idx++)
+  {
+    std::vector<double> p(2);
+    p.at(0)=human_points_in_b_(0,idx);
+    p.at(1)=human_points_in_b_(1,idx);
+    checkArea(p,occupied_area);
+  }
+}
+
+
+/* DEPRECATED */
 void FixedAreasSSM::checkArea(const std::vector<double>& p, double& speed_ovr)
 {
   for (const std::pair<std::string,ShapePtr>& area: areas_)
@@ -167,6 +198,7 @@ void FixedAreasSSM::checkArea(const std::vector<double>& p, double& speed_ovr)
   }
 }
 
+/* DEPRECATED */
 void FixedAreasSSM::checkAreaFromPointCloud(double& speed_ovr)
 {
   speed_ovr = 1.0;
@@ -182,6 +214,20 @@ void FixedAreasSSM::checkAreaFromPointCloud(double& speed_ovr)
 void FixedAreasSSM::init()
 {
   is_configured_=true;
+}
+
+void FixedAreasSSM::init(bool activate_on_h, bool activate_on_r, bool activate_on_s)
+{
+  activate_on_human_ = activate_on_h;
+  activate_on_robot_ = activate_on_r;
+  activate_on_signal_ = activate_on_s;
+
+  if ( (activate_on_human_ || activate_on_robot_ || activate_on_signal_) == false)
+  {
+    std::cerr << "At least one between activate_on_human, activate_on_robot, and activate_on_signal should be set to true for the fixed areas to work."
+              << std::endl;
+  }
+  this->init();
 }
 
 void FixedAreasSSM::printAreas()
@@ -202,15 +248,107 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
    std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
   }
 
-  if (human_points_in_b_.cols()==0)
+
+  std::string area_h;
+  std::string area_r;
+  std::vector<std::string> areas_s;
+
+  if (activate_on_human_)
   {
-    dist_from_closest_=std::numeric_limits<double>::infinity();
-    return 1.0;
+    if (human_points_in_b_.cols()==0)
+    {
+      dist_from_closest_=std::numeric_limits<double>::infinity();
+      return 1.0;
+    }
+    checkAreaFromPointCloud(area_h);
+
+    if (area_h.empty())
+    {
+      return 1.0;
+    }
+  }
+  if (activate_on_robot_)
+  {
+    //checkAreaFromRobot(area_r);
+    if (area_r.empty())
+    {
+      return 1.0;
+    }
+  }
+  if (activate_on_signal_)
+  {
+    //checkAreaFromSignal(areas_s);
+    if (areas_s.size()==0)
+    {
+      return 1.0;
+    }
   }
 
-  double ovr=1.0;
-  checkAreaFromPointCloud(ovr);
-  return ovr;
+  if (activate_on_human_ && activate_on_robot_ && activate_on_signal_)
+  {
+    for (const auto& area_s: areas_s)
+    {
+      if (area_s.compare(area_r)==0 && area_s.compare(area_h)==0)
+      {
+        return areas_.find(area_s)->second->getOverride();
+      }
+    }
+    return 1.0;
+  }
+  if (activate_on_human_ && activate_on_robot_)
+  {
+    if (area_r.compare(area_h)==0)
+    {
+      return areas_.find(area_r)->second->getOverride();
+    }
+    return 1.0;
+  }
+  if (activate_on_human_ && activate_on_signal_)
+  {
+    for (const auto& area_s: areas_s)
+    {
+      if (area_s.compare(area_h)==0)
+      {
+        return areas_.find(area_s)->second->getOverride();
+      }
+    }
+    return 1.0;
+  }
+  if (activate_on_robot_ && activate_on_signal_)
+  {
+    for (const auto& area_s: areas_s)
+    {
+      if (area_s.compare(area_r)==0)
+      {
+        return areas_.find(area_s)->second->getOverride();
+      }
+    }
+    return 1.0;
+  }
+  if (activate_on_robot_)
+  {
+    return areas_.find(area_r)->second->getOverride();
+  }
+  if (activate_on_human_)
+  {
+    return areas_.find(area_h)->second->getOverride();
+  }
+  if (activate_on_signal_)
+  {
+    double min_ovr=1.0;
+    for (const auto& area_s: areas_s)
+    {
+      double ovr = areas_.find(area_s)->second->getOverride();
+      if (ovr < min_ovr)
+      {
+        min_ovr = ovr;
+      }
+    }
+    return min_ovr;
+  }
+
+  std::cerr << "you should not be here!!!" << std::endl;
+  return 1.0;
 }
 
 }  // end ssm15066

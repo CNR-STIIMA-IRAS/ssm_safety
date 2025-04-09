@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <rdyn_core/primitives.h>
 #include "velocity_scaling_iso15066/ssm_base.h"
 
 namespace ssm15066 {
@@ -51,12 +50,8 @@ bool ssm_safe_velocity_limits(const double& vr,
 class DeterministicSSM : public BaseSSM
 {
 protected:
-  rdyn::ChainPtr chain_;
 
   Eigen::VectorXd inv_velocity_limits_;
-
-  std::vector<std::string> links_names_;
-  std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
   double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
   double min_distance_=0.3  ; // min distance
@@ -96,15 +91,9 @@ public:
 
   void useMeasuredHumanVelocity(const bool& flag);
 
-  void setCheckedRobotLinks(const std::vector<std::string>& links);
-
   double computeScaling(const Eigen::VectorXd& q,
                                 const Eigen::VectorXd& dq) override;
 
-  std::vector<std::string> getPoiNames()
-  {
-    return poi_names_;
-  }
 };
 
 class ProbabilisticSSM: public DeterministicSSM

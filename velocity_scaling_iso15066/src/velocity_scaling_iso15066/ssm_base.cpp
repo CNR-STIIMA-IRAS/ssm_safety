@@ -33,8 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ssm15066 {
 
-
 BaseSSM::BaseSSM(){}
+
+BaseSSM::BaseSSM(const rdyn::ChainPtr& chain)
+{
+  chain_=chain;
+  links_names_ = chain_->getLinksName();
+  poi_names_ = links_names_;
+}
 
 void BaseSSM::init(){}
 
@@ -65,4 +71,16 @@ double BaseSSM::getDistanceFromClosestPoint()
   return dist_from_closest_;
 }
 
-}  // end ssm15066
+std::vector<std::string> BaseSSM::getPoiNames()
+{
+  return poi_names_;
+}
+
+void BaseSSM::setCheckedRobotLinks(const std::vector<std::string>& links)
+{
+  poi_names_=links;
+}
+
+}
+
+// end ssm15066

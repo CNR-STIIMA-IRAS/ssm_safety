@@ -39,8 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <iostream>
 
-# include <Eigen/Geometry>
-# include <Eigen/StdVector>
+#include <Eigen/Geometry>
+#include <Eigen/StdVector>
+#include <rdyn_core/primitives.h>
+
 
 namespace ssm15066 {
 
@@ -48,6 +50,10 @@ namespace ssm15066 {
 class BaseSSM
 {
 protected:
+
+  rdyn::ChainPtr chain_;
+  std::vector<std::string> links_names_;
+  std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
 
   bool is_configured_=false;
   bool measured_velocities_=false;
@@ -64,6 +70,8 @@ public:
 
   BaseSSM();
 
+  BaseSSM(const rdyn::ChainPtr& chain);
+
   virtual void init();
 
   bool isConfigured();
@@ -75,6 +83,10 @@ public:
                                 const Eigen::VectorXd& dq) = 0;
 
   virtual double getDistanceFromClosestPoint();
+
+  std::vector<std::string> getPoiNames();
+
+  void setCheckedRobotLinks(const std::vector<std::string>& links);
 
 };
 
