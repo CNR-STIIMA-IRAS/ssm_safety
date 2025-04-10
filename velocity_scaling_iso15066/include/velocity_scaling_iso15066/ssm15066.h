@@ -70,7 +70,6 @@ protected:
 
   Eigen::Vector3d d_lc_in_b_;
 
-  std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
   std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

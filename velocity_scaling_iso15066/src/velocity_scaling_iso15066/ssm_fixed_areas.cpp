@@ -49,7 +49,6 @@ Circle::Circle(const double& radius, const double& override):
   }
 }
 
-
 bool Circle::checkArea(const std::vector<double>& p)
 {
   return (p[0]*p[0] + p[1]*p[1] <= radius_*radius_);
@@ -140,7 +139,6 @@ bool ConvexPolygon::checkArea(const std::vector<double>& p)
   return inPolygon(p);
 }
 
-
 FixedAreasSSM::FixedAreasSSM(){}
 
 FixedAreasSSM::FixedAreasSSM(const rdyn::ChainPtr& chain):
@@ -211,6 +209,38 @@ void FixedAreasSSM::checkAreaFromPointCloud(double& speed_ovr)
   }
 }
 
+void FixedAreasSSM::checkAreaFromRobot(std::string& occupied_area)
+{
+  for (size_t il=0;il<Tbl_.size();il++)
+  {
+    //consider only links inside the poi_names_ list
+    if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+      continue;
+
+    std::vector<double> p(2);
+    p.at(0)=Tbl_.at(il).translation()(0);
+    p.at(1)=Tbl_.at(il).translation()(1);
+    checkArea(p,occupied_area);
+  }
+}
+
+void FixedAreasSSM::checkAreaFromSignal(std::vector<std::string>& occupied_areas)
+{
+  // return all areas associated with an active signal
+  // may contain duplicates
+  occupied_areas.clear();
+  for (const auto& signal: signals_)
+  {
+    if (signal.second.first) // signal.second = <value,areas>
+    {
+      for (const auto& area: signal.second.second)
+      {
+        occupied_areas.push_back(area);
+      }
+    }
+  }
+}
+
 void FixedAreasSSM::init()
 {
   is_configured_=true;
@@ -236,6 +266,49 @@ void FixedAreasSSM::printAreas()
   {
     std::cout << "area name: " << area.first << ". area ovr: " << area.second->getOverride() << std::endl;
   }
+}
+
+void FixedAreasSSM::addSignal(const std::string& name, const std::vector<std::string>& areas)
+{
+  auto signal = std::pair<bool, std::vector<std::string>>(false, areas);
+  signals_.insert(std::pair<std::string, std::pair< bool, std::vector<std::string> > >(name,signal));
+}
+
+bool FixedAreasSSM::updateSignal(const std::string &signal_name, const bool &value)
+{
+  auto it = signals_.find(signal_name);
+
+  if (it != signals_.end())
+  {
+    it->second.first = value;
+    return true;
+  }
+  std::cerr << "Signal " << signal_name << " not found in map: " << std::endl;
+  return false;
+}
+
+void FixedAreasSSM::printSignals()
+{
+  for (const auto& signal: signals_)
+  {
+    std::cout << "signal name: " << signal.first << ". current value: " << signal.second.first << std::endl;
+  }
+}
+
+bool FixedAreasSSM::getActivateOnHuman()
+{
+  return activate_on_human_;
+}
+
+bool FixedAreasSSM::getActivateOnRobot()
+{
+  return activate_on_robot_;
+}
+
+
+bool FixedAreasSSM::getActivateOnSignal()
+{
+  return activate_on_signal_;
 }
 
 
@@ -269,7 +342,8 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
   }
   if (activate_on_robot_)
   {
-    //checkAreaFromRobot(area_r);
+    Tbl_=chain_->getTransformations(q);
+    checkAreaFromRobot(area_r);
     if (area_r.empty())
     {
       return 1.0;
@@ -277,7 +351,7 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
   }
   if (activate_on_signal_)
   {
-    //checkAreaFromSignal(areas_s);
+    checkAreaFromSignal(areas_s);
     if (areas_s.size()==0)
     {
       return 1.0;

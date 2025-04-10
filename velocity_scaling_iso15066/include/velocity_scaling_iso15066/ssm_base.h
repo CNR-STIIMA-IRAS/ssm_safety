@@ -60,10 +60,12 @@ protected:
   //double s_ref_lc_;
   //double s_ref_;
   double dist_from_closest_=-1.0;
+
+  std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
   
   Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
   Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
-  Eigen::Vector2d robot_position_in_b_;
+  Eigen::Vector2d robot_position_in_b_; // DELETE
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
