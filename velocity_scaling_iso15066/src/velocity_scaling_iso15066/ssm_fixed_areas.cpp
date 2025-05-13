@@ -274,7 +274,7 @@ void FixedAreasSSM::addSignal(const std::string& name, const std::vector<std::st
   signals_.insert(std::pair<std::string, std::pair< bool, std::vector<std::string> > >(name,signal));
 }
 
-bool FixedAreasSSM::updateSignal(const std::string &signal_name, const bool &value)
+bool FixedAreasSSM::updateSignal(const std::string& signal_name, const bool& value)
 {
   auto it = signals_.find(signal_name);
 
@@ -292,6 +292,12 @@ void FixedAreasSSM::printSignals()
   for (const auto& signal: signals_)
   {
     std::cout << "signal name: " << signal.first << ". current value: " << signal.second.first << std::endl;
+    std::cout << "areas:\n";
+    for (const auto& area: signal.second.second)
+    {
+      std::cout << "\t - " << area << "\n";
+    }
+    std::cout << std::endl;
   }
 }
 
@@ -320,7 +326,6 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
   {
    std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
   }
-
 
   std::string area_h;
   std::string area_r;
