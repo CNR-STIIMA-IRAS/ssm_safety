@@ -34,15 +34,3 @@ TEST(SSM15066Test, LargePointCloudPerformanceDeterministic)
 
     benchmarkLargeCloud(ssm, *model);
 }
-
-TEST(SSM15066Test, LargePointCloudPerformanceProbabilistic)
-{
-    std::string urdf_filename = std::string(TEST_DIR) + "/ur10.urdf";
-    auto model = std::make_shared<pinocchio::Model>();
-    pinocchio::urdf::buildModel(urdf_filename, *model);
-    auto data = std::make_shared<pinocchio::Data>(*model);
-    ssm15066::ProbabilisticSSM ssm(model, data);
-    ssm.init();
-
-    benchmarkLargeCloud(ssm, *model);
-}

@@ -49,7 +49,6 @@ Circle::Circle(const double& radius, const double& override):
   }
 }
 
-
 bool Circle::checkArea(const std::vector<double>& p)
 {
   return (p[0]*p[0] + p[1]*p[1] <= radius_*radius_);
