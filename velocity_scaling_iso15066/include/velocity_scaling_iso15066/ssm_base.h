@@ -42,6 +42,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # include <Eigen/Geometry>
 # include <Eigen/StdVector>
 
+
+namespace Eigen {
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+}
+
+
 namespace ssm15066 {
 
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.0)
 project(velocity_scaling_iso15066)
 
-find_package(rdyn_core REQUIRED)
+find_package(pinocchio REQUIRED)
 
 option(ENABLE_TESTING "ENABLE TESTING" ON)
 
@@ -19,7 +19,7 @@ add_library(velocity_scaling_iso15066 SHARED
   )
 
 target_link_libraries(velocity_scaling_iso15066 PUBLIC
-  rdyn_core::rdyn_core)
+  pinocchio::pinocchio)
 
 set_target_properties(velocity_scaling_iso15066 PROPERTIES
             CXX_STANDARD 17
@@ -44,17 +44,17 @@ add_library(velocity_scaling_iso15066::velocity_scaling_iso15066 ALIAS velocity_
 # #############################################################################
 if(ENABLE_TESTING)
 
-#  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
-#  target_link_libraries(test_cnr_param
-#    PUBLIC
-#    velocity_scaling_iso15066::velocity_scaling_iso15066
-#    GTest::gtest_main
-#  )
-#  target_compile_definitions(test_cnr_param PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
-#  target_compile_options(test_cnr_param PUBLIC $<$<CONFIG:Release>:-Ofast >)
-#  gtest_discover_tests(test_cnr_param)  # bug related to linking...
-#  add_test(NAME test_cnr_param
-#    COMMAND test_cnr_param)
+ add_executable(test_ssm_iso150666 test/test_ssm_iso150666.cpp)
+ target_link_libraries(test_ssm_iso150666
+   PUBLIC
+   velocity_scaling_iso15066::velocity_scaling_iso15066
+   GTest::gtest_main
+ )
+ target_compile_definitions(test_ssm_iso150666 PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
+ target_compile_options(test_ssm_iso150666 PUBLIC $<$<CONFIG:Release>:-Ofast >)
+ gtest_discover_tests(test_ssm_iso150666)  # bug related to linking...
+ add_test(NAME test_ssm_iso150666
+   COMMAND test_ssm_iso150666)
 
 
 endif()
