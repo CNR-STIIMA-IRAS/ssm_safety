@@ -316,14 +316,10 @@ namespace ssm15066
   }
 
 
-  void
-  ProbabilisticSSM::setPointCloud (
-      const Eigen::Matrix<double, 3, Eigen::Dynamic> &human_points_in_b,
-      const Eigen::Matrix<double, 3, Eigen::Dynamic> &human_velocities_in_b,
-      const Eigen::VectorXd &occupancy)
+
+  void ProbabilisticSSM::setOccupancy(const Eigen::VectorXd& occupancy)
   {
-    assert (human_points_in_b.cols () == occupancy.rows ());
-    DeterministicSSM::setPointCloud (human_points_in_b, human_velocities_in_b);
+    assert (human_points_in_b_.cols () == occupancy.rows ());
     occupancy_ = occupancy;
   }
 

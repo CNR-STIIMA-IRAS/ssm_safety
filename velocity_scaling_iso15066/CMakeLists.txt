@@ -44,17 +44,28 @@ add_library(velocity_scaling_iso15066::velocity_scaling_iso15066 ALIAS velocity_
 # #############################################################################
 if(ENABLE_TESTING)
 
- add_executable(test_ssm_iso150666 test/test_ssm_iso150666.cpp)
- target_link_libraries(test_ssm_iso150666
-   PUBLIC
-   velocity_scaling_iso15066::velocity_scaling_iso15066
-   GTest::gtest_main
- )
- target_compile_definitions(test_ssm_iso150666 PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
- target_compile_options(test_ssm_iso150666 PUBLIC $<$<CONFIG:Release>:-Ofast >)
- gtest_discover_tests(test_ssm_iso150666)  # bug related to linking...
- add_test(NAME test_ssm_iso150666
-   COMMAND test_ssm_iso150666)
+  set(SSM_TEST_SOURCES
+    test/test_initialization.cpp
+    test/test_scaling_bounds.cpp
+    test/test_performance_large_cloud.cpp
+    test/test_ssm_iso150666.cpp
+  )
+
+  foreach(test_src ${SSM_TEST_SOURCES})
+    get_filename_component(test_name ${test_src} NAME_WE)  # get base name without extension
+
+    add_executable(${test_name} ${test_src})
+    target_link_libraries(${test_name}
+      PUBLIC
+      velocity_scaling_iso15066::velocity_scaling_iso15066
+      GTest::gtest_main
+    )
+    target_compile_definitions(${test_name} PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
+    target_compile_options(${test_name} PUBLIC $<$<CONFIG:Release>:-Ofast >)
+
+    gtest_discover_tests(${test_name})
+    add_test(NAME ${test_name} COMMAND ${test_name})
+  endforeach()
 
 
 endif()

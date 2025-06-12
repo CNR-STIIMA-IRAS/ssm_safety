@@ -134,9 +134,7 @@ class ProbabilisticSSM: public DeterministicSSM
     double occupancy_min_=0.0;
 public:
     ProbabilisticSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data): DeterministicSSM(model,data){}
-    void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
-                       const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
-                       const Eigen::VectorXd& occupancy);
+    void setOccupancy(const Eigen::VectorXd& occupancy);
     double computeScaling(const Eigen::VectorXd& q,
                           const Eigen::VectorXd& dq) override;
 
