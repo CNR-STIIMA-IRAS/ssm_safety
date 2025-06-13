@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+
 #include <pinocchio/fwd.hpp>
 
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -68,6 +69,9 @@ class DeterministicSSM : public BaseSSM
 {
 protected:
 
+  Eigen::VectorXd inv_velocity_limits_;
+
+  
     std::shared_ptr< pinocchio::Model> model_;
     std::shared_ptr< pinocchio::Data> data_;
 

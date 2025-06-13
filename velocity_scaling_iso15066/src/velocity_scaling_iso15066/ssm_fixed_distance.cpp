@@ -34,31 +34,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace ssm15066 {
 
 
-void FixedDistanceSSM::checkDistanceFromPointCloud(double& speed_ovr, const std::vector<double>& robot_pos_in_b_xy)
+void FixedDistanceSSM::checkDistanceFromPointCloud(double& speed_ovr,
+                                                   const std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>>& Tbl)
 {
   speed_ovr = 1.0;
   dist_from_closest_=std::numeric_limits<double>::infinity();
 
-  for (size_t idx=0; idx<human_points_in_b_.cols();idx++)
+  std::vector<double> p(2);
+  for (Eigen::Index idx=0; idx<human_points_in_b_.cols();idx++)
   {
-    std::vector<double> p(2);
-    p.at(0)=human_points_in_b_(0,idx) - robot_pos_in_b_xy[0];
-    p.at(1)=human_points_in_b_(1,idx) - robot_pos_in_b_xy[1];
-    double distance_human_to_link_squared = std::pow(p.at(0),2.0) + std::pow(p.at(1),2.0);
-
-    if (distance_human_to_link_squared < dist_from_closest_)
+    for (size_t il=0;il<Tbl_.size();il++)
     {
-      dist_from_closest_=distance_human_to_link_squared;
+      //consider only links inside the poi_names_ list
+      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
+        continue;
+
+      p.at(0)=human_points_in_b_(0,idx) - Tbl_.at(il).translation()(0);
+      p.at(1)=human_points_in_b_(1,idx) - Tbl_.at(il).translation()(1);
+      double distance_human_to_link_squared = std::pow(p.at(0),2.0) + std::pow(p.at(1),2.0);
+
+      if (distance_human_to_link_squared < dist_from_closest_)
+      {
+        dist_from_closest_=distance_human_to_link_squared;
+      }
+      checkArea(p,speed_ovr);
     }
-    checkArea(p,speed_ovr);
   }
   dist_from_closest_=std::sqrt(dist_from_closest_);
 }
 
+FixedDistanceSSM::FixedDistanceSSM(){}
+
+FixedDistanceSSM::FixedDistanceSSM(const rdyn::ChainPtr& chain):
+  FixedAreasSSM(chain){}
+
 void FixedDistanceSSM::init()
 {
-  robot_position_in_b_.resize(2);
-  robot_position_in_b_.setZero();
   is_configured_=true;
 }
 
@@ -76,18 +87,11 @@ double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
     return 1.0;
   }
 
+  Tbl_=chain_->getTransformations(q);
+
   double ovr=1.0;
-  std::vector<double> robot_position(2);
-  robot_position[0] = robot_position_in_b_(0);
-  robot_position[1] = robot_position_in_b_(1);
-  checkDistanceFromPointCloud(ovr, robot_position);
+  checkDistanceFromPointCloud(ovr, Tbl_);
   return ovr;
 }
-
-void FixedDistanceSSM::setRobotToolPosition(const Eigen::Vector2d& xy_in_b)
-{
-  robot_position_in_b_ = xy_in_b;
-}
-
 
 }  // end ssm15066

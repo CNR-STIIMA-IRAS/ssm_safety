@@ -86,23 +86,41 @@ public:
 
 using ConvexPolygonPtr = std::shared_ptr<ConvexPolygon>;
 
-
 class FixedAreasSSM : public BaseSSM
 {
 protected:
   std::map<std::string,ShapePtr> areas_;
   // ros::Time last_time_;
 
-  void checkArea(const std::vector<double>& p, double& speed_ovr);
+  void checkArea(const std::vector<double>& p, double& speed_ovr); // DEPRECATED
 
-  void checkAreaFromPointCloud(double& speed_ovr);
+  void checkAreaFromPointCloud(double& speed_ovr); // DEPRECATED
+
+  void checkArea(const std::vector<double>& p, std::string& occupied_area);
+
+  void checkAreaFromPointCloud(std::string& occupied_area);
+
+  void checkAreaFromRobot(std::string& occupied_area);
+
+  void checkAreaFromSignal(std::vector<std::string> &occupied_areas);
+
+  bool activate_on_human_{false};
+  bool activate_on_robot_{false};
+  bool activate_on_signal_{false};
+
+  // key: signal name; value: <signal value, areas associated to signal>
+  std::map<std::string,std::pair <bool, std::vector<std::string> >> signals_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   FixedAreasSSM();
 
+  FixedAreasSSM(const rdyn::ChainPtr& chain);
+
   void init() override;
+
+  void init(bool activate_on_h, bool activate_on_r, bool activate_on_s);
 
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq) override;
@@ -112,6 +130,18 @@ public:
   void addArea(const std::string& name, const double& radius, const double& speed_ovr);
 
   void printAreas();
+
+  void addSignal(const std::string& name, const std::vector<std::string> &areas);
+
+  bool updateSignal(const std::string& signal_name, const bool& value);
+
+  void printSignals();
+
+  bool getActivateOnHuman();
+
+  bool getActivateOnRobot();
+
+  bool getActivateOnSignal();
 
 
 };

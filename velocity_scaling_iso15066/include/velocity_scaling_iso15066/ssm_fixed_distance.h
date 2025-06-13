@@ -41,17 +41,19 @@ class FixedDistanceSSM : public FixedAreasSSM
 {
 protected:
 
-  void checkDistanceFromPointCloud(double& speed_ovr, const std::vector<double>& robot_pos_in_b_xy);
+  void checkDistanceFromPointCloud(double& speed_ovr, const std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d> > &Tbl);
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  FixedDistanceSSM();
+
+  FixedDistanceSSM(const rdyn::ChainPtr& chain);
 
   void init() override;
 
   double computeScaling(const Eigen::VectorXd& q,
                         const Eigen::VectorXd& dq) override;
-
-  void setRobotToolPosition(const Eigen::Vector2d& xy_in_b);
 
 };
 

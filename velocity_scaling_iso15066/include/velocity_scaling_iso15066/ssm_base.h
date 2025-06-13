@@ -39,8 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <iostream>
 
-# include <Eigen/Geometry>
-# include <Eigen/StdVector>
+#include <Eigen/Geometry>
+#include <Eigen/StdVector>
+#include <rdyn_core/primitives.h>
+
 
 
 namespace Eigen {
@@ -55,20 +57,28 @@ class BaseSSM
 {
 protected:
 
+  rdyn::ChainPtr chain_;
+  std::vector<std::string> links_names_;
+  std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
+
   bool is_configured_=false;
   bool measured_velocities_=false;
   //double s_ref_lc_;
   //double s_ref_;
   double dist_from_closest_=-1.0;
+
+  std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
   
   Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
   Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
-  Eigen::Vector2d robot_position_in_b_;
+  Eigen::Vector2d robot_position_in_b_; // DELETE
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   BaseSSM();
+
+  BaseSSM(const rdyn::ChainPtr& chain);
 
   virtual void init();
 
@@ -81,6 +91,10 @@ public:
                                 const Eigen::VectorXd& dq) = 0;
 
   virtual double getDistanceFromClosestPoint();
+
+  std::vector<std::string> getPoiNames();
+
+  void setCheckedRobotLinks(const std::vector<std::string>& links);
 
 };
 

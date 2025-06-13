@@ -104,6 +104,9 @@ namespace ssm15066
   void DeterministicSSM::computeKinematics(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
   {
 
+
+void DeterministicSSM::init()
+{
     Eigen::VectorXd a = Eigen::VectorXd::Zero (model_->nv);
 
     // Computes the kinematics derivatives for all the joints of the robot
@@ -202,8 +205,11 @@ namespace ssm15066
     is_configured_ = false;
   }
 
-  void
-  DeterministicSSM::setMinProtectiveDistance (const double &dist)
+
+double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
+                                        const Eigen::VectorXd& dq)
+{
+  if (!this->isConfigured())
   {
     min_distance_ = dist;
     is_configured_ = false;
