@@ -41,9 +41,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
-#include <rdyn_core/primitives.h>
 
-
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/kinematics-derivatives.hpp>
+#include "pinocchio/multibody/model.hpp"
+#include "pinocchio/multibody/data.hpp"
+#include "pinocchio/algorithm/model.hpp"
+#include "pinocchio/algorithm/jacobian.hpp"
+#include "pinocchio/algorithm/frames.hpp"
+#include "pinocchio/algorithm/rnea.hpp"
+#include "pinocchio/algorithm/crba.hpp"
+#include "pinocchio/spatial/act-on-set.hpp"
+#include "pinocchio/multibody/sample-models.hpp"
+#include "pinocchio/utils/timer.hpp"
+#include "pinocchio/algorithm/joint-configuration.hpp"
+#include <pinocchio/fwd.hpp>
 
 namespace Eigen {
 using Vector6d = Eigen::Matrix<double, 6, 1>;
@@ -57,9 +69,14 @@ class BaseSSM
 {
 protected:
 
-  rdyn::ChainPtr chain_;
+
+  std::shared_ptr< pinocchio::Model> model_;
+  std::shared_ptr< pinocchio::Data> data_;
+
+
+
   std::vector<std::string> links_names_;
-  std::vector<std::string> poi_names_;  // list of point of interests to consider along the robot structure
+  std::vector< pinocchio::FrameIndex> links_idx_;
 
   bool is_configured_=false;
   bool measured_velocities_=false;
@@ -68,17 +85,26 @@ protected:
   double dist_from_closest_=-1.0;
 
   std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
+  std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
   
   Eigen::Matrix<double,3,Eigen::Dynamic> human_points_in_b_;
   Eigen::Matrix<double,3,Eigen::Dynamic> human_velocities_in_b_;
   Eigen::Vector2d robot_position_in_b_; // DELETE
+
+
+  void setLinkId();
+
+
+
+  void computeKinematics(const Eigen::VectorXd& q,
+                         const Eigen::VectorXd& dq);
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   BaseSSM();
 
-  BaseSSM(const rdyn::ChainPtr& chain);
+  BaseSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data);
 
   virtual void init();
 
@@ -95,6 +121,8 @@ public:
   std::vector<std::string> getPoiNames();
 
   void setCheckedRobotLinks(const std::vector<std::string>& links);
+
+  void useMeasuredHumanVelocity(const bool& flag);
 
 };
 

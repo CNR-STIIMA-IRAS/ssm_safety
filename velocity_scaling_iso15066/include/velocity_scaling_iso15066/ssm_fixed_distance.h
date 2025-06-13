@@ -48,7 +48,7 @@ public:
 
   FixedDistanceSSM();
 
-  FixedDistanceSSM(const rdyn::ChainPtr& chain);
+  FixedDistanceSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data);
 
   void init() override;
 

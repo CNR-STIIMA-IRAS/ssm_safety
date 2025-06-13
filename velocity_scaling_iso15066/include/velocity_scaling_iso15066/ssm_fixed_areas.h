@@ -116,7 +116,7 @@ public:
 
   FixedAreasSSM();
 
-  FixedAreasSSM(const rdyn::ChainPtr& chain);
+  FixedAreasSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data);
 
   void init() override;
 

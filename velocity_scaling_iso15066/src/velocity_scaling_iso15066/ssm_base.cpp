@@ -35,11 +35,23 @@ namespace ssm15066 {
 
 BaseSSM::BaseSSM(){}
 
-BaseSSM::BaseSSM(const rdyn::ChainPtr& chain)
+BaseSSM::BaseSSM(
+     const std::shared_ptr<pinocchio::Model> model,
+     std::shared_ptr<pinocchio::Data> data)
+   : model_ (model), data_ (data)
 {
-  chain_=chain;
-  links_names_ = chain_->getLinksName();
-  poi_names_ = links_names_;
+  links_names_.clear ();
+
+  for (const auto &frame : model_->frames)
+  {
+    if (frame.type == pinocchio::BODY)
+    {
+      links_names_.push_back (frame.name);
+      links_idx_.push_back (model_->getFrameId (frame.name));
+    }
+  }
+  Tbl_.resize (links_names_.size ());
+  vl_in_b_.resize (links_names_.size ());
 }
 
 void BaseSSM::init(){}
@@ -48,6 +60,54 @@ bool BaseSSM::isConfigured()
 {
   return is_configured_;
 }
+
+
+void BaseSSM::setLinkId()
+{
+  links_idx_.clear();
+  for (const auto &name: links_names_)
+  {
+    links_idx_.push_back (model_->getFrameId (name));
+  }
+}
+
+void BaseSSM::useMeasuredHumanVelocity (const bool &flag)
+{
+  measured_velocities_ = flag;
+  is_configured_ = false;
+}
+
+
+void BaseSSM::computeKinematics(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
+{
+
+
+  Eigen::VectorXd a = Eigen::VectorXd::Zero (model_->nv);
+
+  // Computes the kinematics derivatives for all the joints of the robot
+  pinocchio::forwardKinematics (*model_, *data_, q, dq, a);
+  pinocchio::computeForwardKinematicsDerivatives (*model_, *data_, q, dq, a);
+  pinocchio::updateFramePlacements (*model_, *data_);
+
+  pinocchio::Motion twist;
+  Eigen::Vector6d v6;
+
+  for (size_t i = 0; i < links_idx_.size (); i++)
+  {
+    const pinocchio::FrameIndex &idx = links_idx_[i];
+    const auto &oMf = data_->oMf[idx]; // Transformation: world → frame
+
+    Eigen::Affine3d T (oMf.toHomogeneousMatrix ()); // also validlinks_idx_
+    Tbl_.at(i)=T;
+    twist = pinocchio::getFrameVelocity (*model_, *data_, idx,
+                                         pinocchio::LOCAL_WORLD_ALIGNED);
+    v6 << twist.linear (), twist.angular (); // linear first, then angular
+    vl_in_b_.at(i)=v6;
+  }
+
+}
+
+
 
 void BaseSSM::setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
                             const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b)
@@ -73,12 +133,14 @@ double BaseSSM::getDistanceFromClosestPoint()
 
 std::vector<std::string> BaseSSM::getPoiNames()
 {
-  return poi_names_;
+  return links_names_;
 }
 
-void BaseSSM::setCheckedRobotLinks(const std::vector<std::string>& links)
+void
+BaseSSM::setCheckedRobotLinks (const std::vector<std::string> &links)
 {
-  poi_names_=links;
+  links_names_ = links;
+  setLinkId();
 }
 
 }

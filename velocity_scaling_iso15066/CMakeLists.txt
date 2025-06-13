@@ -48,7 +48,7 @@ if(ENABLE_TESTING)
     test/test_initialization.cpp
     test/test_scaling_bounds.cpp
     test/test_performance_large_cloud.cpp
-    test/test_ssm_iso150666.cpp
+    test/test_ssm_iso15066.cpp
     test/test_fixed_areas_ssm.cpp
   )
 

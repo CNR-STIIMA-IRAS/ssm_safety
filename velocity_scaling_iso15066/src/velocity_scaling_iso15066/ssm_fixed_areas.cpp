@@ -141,8 +141,8 @@ bool ConvexPolygon::checkArea(const std::vector<double>& p)
 
 FixedAreasSSM::FixedAreasSSM(){}
 
-FixedAreasSSM::FixedAreasSSM(const rdyn::ChainPtr& chain):
-  BaseSSM(chain){}
+FixedAreasSSM::FixedAreasSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data):
+  BaseSSM(model,data){}
 
 void FixedAreasSSM::addArea(const std::string& name, const std::vector<std::vector<double>>& corners, const double& speed_ovr)
 {
@@ -213,9 +213,6 @@ void FixedAreasSSM::checkAreaFromRobot(std::string& occupied_area)
 {
   for (size_t il=0;il<Tbl_.size();il++)
   {
-    //consider only links inside the poi_names_ list
-    if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
-      continue;
 
     std::vector<double> p(2);
     p.at(0)=Tbl_.at(il).translation()(0);
@@ -326,6 +323,7 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
   {
    std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
   }
+  computeKinematics(q,dq);
 
   std::string area_h;
   std::string area_r;
@@ -347,7 +345,6 @@ double FixedAreasSSM::computeScaling(const Eigen::VectorXd& q,
   }
   if (activate_on_robot_)
   {
-    Tbl_=chain_->getTransformations(q);
     checkAreaFromRobot(area_r);
     if (area_r.empty())
     {

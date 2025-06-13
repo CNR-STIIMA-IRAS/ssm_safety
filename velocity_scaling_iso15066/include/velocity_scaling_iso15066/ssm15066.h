@@ -33,23 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 
-#include <pinocchio/fwd.hpp>
-
-#include <pinocchio/algorithm/kinematics.hpp>
-#include <pinocchio/algorithm/kinematics-derivatives.hpp>
-#include "pinocchio/multibody/model.hpp"
-#include "pinocchio/multibody/data.hpp"
-#include "pinocchio/algorithm/model.hpp"
-#include "pinocchio/algorithm/jacobian.hpp"
-#include "pinocchio/algorithm/frames.hpp"
-#include "pinocchio/algorithm/rnea.hpp"
-#include "pinocchio/algorithm/crba.hpp"
-#include "pinocchio/spatial/act-on-set.hpp"
-#include "pinocchio/multibody/sample-models.hpp"
-#include "pinocchio/utils/timer.hpp"
-#include "pinocchio/algorithm/joint-configuration.hpp"
-
-
 #include "velocity_scaling_iso15066/ssm_base.h"
 
 namespace ssm15066 {
@@ -77,9 +60,6 @@ protected:
 
 
 
-    std::vector<std::string> links_names_;
-    std::vector< pinocchio::FrameIndex> links_idx_;
-
     double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
     double min_distance_=0.3  ; // min distance
     double max_cart_acc_=0.1;  // m/s^2
@@ -97,14 +77,9 @@ protected:
 
     Eigen::Vector3d d_lc_in_b_;
 
-    std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
-    std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
 
 
-    void computeKinematics(const Eigen::VectorXd& q,
-                           const Eigen::VectorXd& dq);
 
-    void setLinkId();
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -121,8 +96,6 @@ public:
     void setMinProtectiveDistance(const double& dist);
 
     void setFilteringSelfDistance(const double& dist);
-
-    void useMeasuredHumanVelocity(const bool& flag);
 
     void setCheckedRobotLinks(const std::vector<std::string>& links);
 

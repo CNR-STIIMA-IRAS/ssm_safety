@@ -46,8 +46,6 @@ void FixedDistanceSSM::checkDistanceFromPointCloud(double& speed_ovr,
     for (size_t il=0;il<Tbl_.size();il++)
     {
       //consider only links inside the poi_names_ list
-      if(std::find(poi_names_.begin(),poi_names_.end(),links_names_[il])>=poi_names_.end())
-        continue;
 
       p.at(0)=human_points_in_b_(0,idx) - Tbl_.at(il).translation()(0);
       p.at(1)=human_points_in_b_(1,idx) - Tbl_.at(il).translation()(1);
@@ -65,8 +63,8 @@ void FixedDistanceSSM::checkDistanceFromPointCloud(double& speed_ovr,
 
 FixedDistanceSSM::FixedDistanceSSM(){}
 
-FixedDistanceSSM::FixedDistanceSSM(const rdyn::ChainPtr& chain):
-  FixedAreasSSM(chain){}
+FixedDistanceSSM::FixedDistanceSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data):
+  FixedAreasSSM(model,data){}
 
 void FixedDistanceSSM::init()
 {
@@ -80,14 +78,13 @@ double FixedDistanceSSM::computeScaling(const Eigen::VectorXd& q,
   {
    std::cout << "[ssm15066] [WARNING] trying to compute scaling before using init()." << std::endl;
   }
+  computeKinematics(q,dq);
 
   if (human_points_in_b_.cols()==0)
   {
     dist_from_closest_=std::numeric_limits<double>::infinity();
     return 1.0;
   }
-
-  Tbl_=chain_->getTransformations(q);
 
   double ovr=1.0;
   checkDistanceFromPointCloud(ovr, Tbl_);

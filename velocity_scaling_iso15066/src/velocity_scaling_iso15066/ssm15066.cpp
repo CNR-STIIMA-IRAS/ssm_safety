@@ -101,64 +101,12 @@ namespace ssm15066
     }
   }
 
-  void DeterministicSSM::computeKinematics(const Eigen::VectorXd &q, const Eigen::VectorXd &dq)
-  {
-
-
-void DeterministicSSM::init()
-{
-    Eigen::VectorXd a = Eigen::VectorXd::Zero (model_->nv);
-
-    // Computes the kinematics derivatives for all the joints of the robot
-    pinocchio::forwardKinematics (*model_, *data_, q, dq, a);
-    pinocchio::computeForwardKinematicsDerivatives (*model_, *data_, q, dq, a);
-    pinocchio::updateFramePlacements (*model_, *data_);
-
-    pinocchio::Motion twist;
-    Eigen::Vector6d v6;
-
-    for (size_t i = 0; i < links_idx_.size (); i++)
-    {
-      const pinocchio::FrameIndex &idx = links_idx_[i];
-      const auto &oMf = data_->oMf[idx]; // Transformation: world → frame
-
-      Eigen::Affine3d T (oMf.toHomogeneousMatrix ()); // also validlinks_idx_
-      Tbl_.at(i)=T;
-      twist = pinocchio::getFrameVelocity (*model_, *data_, idx,
-                                           pinocchio::LOCAL_WORLD_ALIGNED);
-      v6 << twist.linear (), twist.angular (); // linear first, then angular
-      vl_in_b_.at(i)=v6;
-    }
-
-  }
-
-  void DeterministicSSM::setLinkId()
-  {
-    links_idx_.clear();
-    for (const auto &name: links_names_)
-    {
-      links_idx_.push_back (model_->getFrameId (name));
-    }
-  }
-
   DeterministicSSM::DeterministicSSM (
       const std::shared_ptr<pinocchio::Model> model,
       std::shared_ptr<pinocchio::Data> data)
-    : model_ (model), data_ (data)
+    : BaseSSM(model, data)
   {
 
-    links_names_.clear ();
-
-    for (const auto &frame : model_->frames)
-    {
-      if (frame.type == pinocchio::BODY)
-      {
-        links_names_.push_back (frame.name);
-        links_idx_.push_back (model_->getFrameId (frame.name));
-      }
-    }
-    Tbl_.resize (links_names_.size ());
-    vl_in_b_.resize (links_names_.size ());
 
   }
 
@@ -206,39 +154,25 @@ void DeterministicSSM::init()
   }
 
 
-double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
-                                        const Eigen::VectorXd& dq)
-{
-  if (!this->isConfigured())
-  {
-    min_distance_ = dist;
-    is_configured_ = false;
-  }
-
   void
   DeterministicSSM::setFilteringSelfDistance (const double &dist)
   {
     self_distance_ = dist;
     is_configured_ = false;
   }
-
   void
-  DeterministicSSM::useMeasuredHumanVelocity (const bool &flag)
+  DeterministicSSM::setMinProtectiveDistance (const double &dist)
   {
-    measured_velocities_ = flag;
+    min_distance_ = dist;
     is_configured_ = false;
   }
 
-  void
-  DeterministicSSM::setCheckedRobotLinks (const std::vector<std::string> &links)
-  {
-    links_names_ = links;
-    setLinkId();
-  }
 
-  double
-  DeterministicSSM::computeScaling (const Eigen::VectorXd &q,
-                                    const Eigen::VectorXd &dq)
+
+
+
+  double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
+                                          const Eigen::VectorXd& dq)
   {
     if (!this->isConfigured ())
     {
@@ -320,7 +254,6 @@ double DeterministicSSM::computeScaling(const Eigen::VectorXd& q,
     }
     return s_ref_;
   }
-
 
 
   void ProbabilisticSSM::setOccupancy(const Eigen::VectorXd& occupancy)
