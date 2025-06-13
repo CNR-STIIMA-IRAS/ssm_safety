@@ -32,19 +32,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+
+#include <pinocchio/fwd.hpp>
+
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/kinematics-derivatives.hpp>
+#include "pinocchio/multibody/model.hpp"
+#include "pinocchio/multibody/data.hpp"
+#include "pinocchio/algorithm/model.hpp"
+#include "pinocchio/algorithm/jacobian.hpp"
+#include "pinocchio/algorithm/frames.hpp"
+#include "pinocchio/algorithm/rnea.hpp"
+#include "pinocchio/algorithm/crba.hpp"
+#include "pinocchio/spatial/act-on-set.hpp"
+#include "pinocchio/multibody/sample-models.hpp"
+#include "pinocchio/utils/timer.hpp"
+#include "pinocchio/algorithm/joint-configuration.hpp"
+
+
 #include "velocity_scaling_iso15066/ssm_base.h"
 
 namespace ssm15066 {
 
 
 bool ssm_safe_velocity_limits(const double& vr,
-                      const double& vh,
-                      const double& a,
-                      const double& Tr,
-                      const double &D,
-                      const double& C,
-                      double& solution1,
-                      double& solution2);
+                              const double& vh,
+                              const double& a,
+                              const double& Tr,
+                              const double &D,
+                              const double& C,
+                              double& solution1,
+                              double& solution2);
 
 
 class DeterministicSSM : public BaseSSM
@@ -53,60 +71,76 @@ protected:
 
   Eigen::VectorXd inv_velocity_limits_;
 
-  double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
-  double min_distance_=0.3  ; // min distance
-  double max_cart_acc_=0.1;  // m/s^2
-  double t_r_=0.15;  // reaction time;
-  double dist_dec_;
-  double term1_;
-  double term2_;
-  double distance_;
-  double s_ref_lc_;
-  double s_ref_;
-  double robot_tangential_speed_;
-  double human_tangential_speed_;
-  double vmax_;
-  double default_human_velocity_{0.0};
+  
+    std::shared_ptr< pinocchio::Model> model_;
+    std::shared_ptr< pinocchio::Data> data_;
 
-  Eigen::Vector3d d_lc_in_b_;
 
-  std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
+
+    std::vector<std::string> links_names_;
+    std::vector< pinocchio::FrameIndex> links_idx_;
+
+    double self_distance_=0.15; // filter out points too close to the robot (likely false positive)
+    double min_distance_=0.3  ; // min distance
+    double max_cart_acc_=0.1;  // m/s^2
+    double t_r_=0.15;  // reaction time;
+    double dist_dec_;
+    double term1_;
+    double term2_;
+    double distance_;
+    double s_ref_lc_;
+    double s_ref_;
+    double robot_tangential_speed_;
+    double human_tangential_speed_;
+    double vmax_;
+    double default_human_velocity_{0.0};
+
+    Eigen::Vector3d d_lc_in_b_;
+
+    std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>> Tbl_;
+    std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > vl_in_b_;
+
+
+    void computeKinematics(const Eigen::VectorXd& q,
+                           const Eigen::VectorXd& dq);
+
+    void setLinkId();
 public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  DeterministicSSM(const rdyn::ChainPtr& chain);
+    DeterministicSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data);
 
-  void init() override;
+    void init() override;
 
-  void setMaxCartesianAcceleration(const double& acc);
+    void setMaxCartesianAcceleration(const double& acc);
 
-  void setReactionTime(const double& t_r);
+    void setReactionTime(const double& t_r);
 
-  void setDefaultHumanSpeed(const double& vel);
+    void setDefaultHumanSpeed(const double& vel);
 
-  void setMinProtectiveDistance(const double& dist);
+    void setMinProtectiveDistance(const double& dist);
 
-  void setFilteringSelfDistance(const double& dist);
+    void setFilteringSelfDistance(const double& dist);
 
-  void useMeasuredHumanVelocity(const bool& flag);
+    void useMeasuredHumanVelocity(const bool& flag);
 
-  double computeScaling(const Eigen::VectorXd& q,
-                                const Eigen::VectorXd& dq) override;
+    void setCheckedRobotLinks(const std::vector<std::string>& links);
+
+    double computeScaling(const Eigen::VectorXd& q,
+                          const Eigen::VectorXd& dq) override;
 
 };
 
 class ProbabilisticSSM: public DeterministicSSM
 {
-  Eigen::VectorXd occupancy_;
-  std::map<double,double> scaling_;
-  double occupancy_min_=0.0;
+    Eigen::VectorXd occupancy_;
+    std::map<double,double> scaling_;
+    double occupancy_min_=0.0;
 public:
-  ProbabilisticSSM(const rdyn::ChainPtr& chain): DeterministicSSM(chain){}
-  void setPointCloud(const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_points_in_b,
-                     const Eigen::Matrix<double, 3, Eigen::Dynamic>& human_velocities_in_b,
-                     const Eigen::VectorXd& occupancy);
-  double computeScaling(const Eigen::VectorXd& q,
-                                const Eigen::VectorXd& dq) override;
+    ProbabilisticSSM(const std::shared_ptr< pinocchio::Model> model, std::shared_ptr< pinocchio::Data> data): DeterministicSSM(model,data){}
+    void setOccupancy(const Eigen::VectorXd& occupancy);
+    double computeScaling(const Eigen::VectorXd& q,
+                          const Eigen::VectorXd& dq) override;
 
 };
 

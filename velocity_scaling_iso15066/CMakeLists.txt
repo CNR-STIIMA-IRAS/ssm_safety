@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.0)
 project(velocity_scaling_iso15066)
 
-find_package(rdyn_core REQUIRED)
+find_package(pinocchio REQUIRED)
 
 option(ENABLE_TESTING "ENABLE TESTING" ON)
 
@@ -19,7 +19,7 @@ add_library(velocity_scaling_iso15066 SHARED
   )
 
 target_link_libraries(velocity_scaling_iso15066 PUBLIC
-  rdyn_core::rdyn_core)
+  pinocchio::pinocchio)
 
 set_target_properties(velocity_scaling_iso15066 PROPERTIES
             CXX_STANDARD 17
@@ -44,17 +44,29 @@ add_library(velocity_scaling_iso15066::velocity_scaling_iso15066 ALIAS velocity_
 # #############################################################################
 if(ENABLE_TESTING)
 
-#  add_executable(test_cnr_param test/test_cnr_param_mapped_file.cpp)
-#  target_link_libraries(test_cnr_param
-#    PUBLIC
-#    velocity_scaling_iso15066::velocity_scaling_iso15066
-#    GTest::gtest_main
-#  )
-#  target_compile_definitions(test_cnr_param PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
-#  target_compile_options(test_cnr_param PUBLIC $<$<CONFIG:Release>:-Ofast >)
-#  gtest_discover_tests(test_cnr_param)  # bug related to linking...
-#  add_test(NAME test_cnr_param
-#    COMMAND test_cnr_param)
+  set(SSM_TEST_SOURCES
+    test/test_initialization.cpp
+    test/test_scaling_bounds.cpp
+    test/test_performance_large_cloud.cpp
+    test/test_ssm_iso150666.cpp
+    test/test_fixed_areas_ssm.cpp
+  )
+
+  foreach(test_src ${SSM_TEST_SOURCES})
+    get_filename_component(test_name ${test_src} NAME_WE)  # get base name without extension
+
+    add_executable(${test_name} ${test_src})
+    target_link_libraries(${test_name}
+      PUBLIC
+      velocity_scaling_iso15066::velocity_scaling_iso15066
+      GTest::gtest_main
+    )
+    target_compile_definitions(${test_name} PRIVATE TEST_DIR="${CMAKE_CURRENT_LIST_DIR}/test")
+    target_compile_options(${test_name} PUBLIC $<$<CONFIG:Release>:-Ofast >)
+
+    gtest_discover_tests(${test_name})
+    add_test(NAME ${test_name} COMMAND ${test_name})
+  endforeach()
 
 
 endif()
